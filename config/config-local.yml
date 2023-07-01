@@ -1,0 +1,22 @@
+server:
+  AppVersion: 1.0.0
+  Port: :8000
+  Mode: Development
+  JwtSecretKey: secretkey
+  PeperSecreKey: secretkey
+  ReadTimeout: 15s
+  WriteTimeout: 15s
+  CSRF: false
+postgres:
+  PostgresqlHost: localhost
+  PostgresqlPort: 5432
+  PostgresqlUser: postgres
+  PostgresqlPassword: postgres
+  PostgresqlDbname: moviesapp
+  PostgresqlSslmode: false
+  PgDriver: pgx
+cookie:
+  Name: jwt-token
+  MaxAge: 86400
+  Secure: false
+  HttpOnly: true
