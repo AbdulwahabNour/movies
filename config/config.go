@@ -24,6 +24,7 @@ type ServerConfig struct{
     PeperSecreKey string
     ReadTimeout time.Duration
     WriteTimeout time.Duration
+    CtxDefaultTimeout time.Duration
     CSRF bool
 }
 

@@ -4,8 +4,9 @@ server:
   Mode: Development
   JwtSecretKey: secretkey
   PeperSecreKey: secretkey
-  ReadTimeout: 15s
-  WriteTimeout: 15s
+  ReadTimeout: 30s
+  WriteTimeout: 30s
+  CtxDefaultTimeout: 25s
   CSRF: false
 postgres:
   PostgresqlHost: localhost
