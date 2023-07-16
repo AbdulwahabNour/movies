@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/AbdulwahabNour/movies/config"
-	"github.com/AbdulwahabNour/movies/internal/model"
+	model "github.com/AbdulwahabNour/movies/internal/model/movie"
 	"github.com/AbdulwahabNour/movies/internal/movies"
 	"github.com/AbdulwahabNour/movies/pkg/httpError"
 	"github.com/AbdulwahabNour/movies/pkg/logger"
@@ -42,10 +42,27 @@ func (s *movieService) GetMovie(ctx context.Context, id int64) (*model.Movie, er
 
 	return s.repo.GetMovie(ctx, id)
 }
+func (s *movieService) ListMoviesHandler(ctx context.Context, query *model.MovieSearchQuery) ([]*model.Movie, error) {
+	query.PrepareForQuery()
+
+	if err := s.validate.Struct(query); err != nil {
+		return nil, httpError.ParseValidationErrors(err)
+	}
+	movies, err := s.repo.ListMoviesHandler(ctx, query)
+
+	if err != nil {
+		return nil, httpError.NewInternalServerError(err)
+
+	}
+	return movies, nil
+}
 func (s *movieService) UpdateMovie(ctx context.Context, movie *model.Movie) error {
 
 	if movie.ID < 1 {
 		return httpError.NewBadRequestError(httpError.ErrBadQuery)
+	}
+	if movie.IsEmpty() {
+		return httpError.NewBadRequestError(httpError.ErrInvalidSyntax)
 	}
 
 	getMovie, err := s.GetMovie(ctx, movie.ID)

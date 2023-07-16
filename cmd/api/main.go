@@ -10,36 +10,29 @@ import (
 	"github.com/AbdulwahabNour/movies/pkg/logger"
 )
 
- 
- 
+func main() {
 
+	configFile, err := config.LoadConfig("./config/config-local")
 
-func main(){
-    
-    configFile, err := config.LoadConfig("./config/config-local")
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
 
-    if err != nil{
-        log.Fatalf("Failed to load config: %v",err)
-    }
+	conf, err := config.ParseConfig(configFile)
+	if err != nil {
+		log.Fatalf("Failed to parse config: %v", err)
 
-    conf, err := config.ParseConfig(configFile)
-    if err != nil{
-        log.Fatalf("Failed to parse config: %v",err)
-      
-    }
-    logger := logger.NewApiLogger()
+	}
+	logger := logger.NewApiLogger()
 
-    psql, err := postgres.ConnectSql(conf)
-    if err != nil{
-        log.Fatalf("Failed to connect to database: %v",err)
-    }
-    serv := server.NewServer(conf, logger, psql.Client)
-   err =  serv.Run()
-    if err != nil{
-        log.Fatalf("Failed to run server: %v",err)
-    }
-   
+	psql, err := postgres.ConnectSql(conf)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	serv := server.NewServer(conf, logger, psql.Client)
+	err = serv.Run()
+	if err != nil {
+		log.Fatalf("Failed to run server: %v", err)
+	}
+
 }
-
-
- 

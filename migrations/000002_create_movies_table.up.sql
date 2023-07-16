@@ -1,3 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 Create table if not exists movies(
     id bigserial primary key,
     create_at timestamp(0) with time zone not null default now(),
@@ -5,5 +6,5 @@ Create table if not exists movies(
     year integer not null,
     runtime integer not null,
     genres text[] not null,
-    version integer not null default 1
+    version uuid not null default uuid_generate_v1()
 );

@@ -23,6 +23,7 @@ var (
 	ErrRecordNotFound    = errors.New("record not found")
 	ErrInvalidJsonFormat = errors.New("request body contains invalid formed  Json")
 	ErrUnexpectedEOF     = errors.New("an unexpected end of input occurred. The data provided is incomplete or truncated")
+	ErrEditConflict      = errors.New("unable to update the record due to an edit conflict, please try again")
 )
 
 type HttpErr interface {
@@ -48,6 +49,9 @@ func (e HttpError) Description() any {
 	return e.ErrDescription
 }
 func NewHttpError(status int, err string, description any) HttpErr {
+	if e, ok := description.(error); ok {
+		description = e.Error()
+	}
 	return HttpError{
 		ErrStatus:      status,
 		ErrError:       err,
@@ -55,6 +59,10 @@ func NewHttpError(status int, err string, description any) HttpErr {
 }
 
 func NewBadRequestError(err any) HttpErr {
+	if e, ok := err.(error); ok {
+		err = e.Error()
+	}
+
 	return HttpError{
 		ErrStatus:      http.StatusBadRequest,
 		ErrError:       ErrBadRequest.Error(),
@@ -63,6 +71,10 @@ func NewBadRequestError(err any) HttpErr {
 }
 
 func NewNotFoundError(err any) HttpErr {
+	if e, ok := err.(error); ok {
+		err = e.Error()
+	}
+
 	return HttpError{
 		ErrStatus:      http.StatusNotFound,
 		ErrError:       ErrNotFound.Error(),
@@ -71,6 +83,9 @@ func NewNotFoundError(err any) HttpErr {
 }
 
 func NewBadQueryError(err any) HttpErr {
+	if e, ok := err.(error); ok {
+		err = e.Error()
+	}
 	return HttpError{
 		ErrStatus:      http.StatusBadRequest,
 		ErrError:       ErrBadQuery.Error(),
@@ -79,6 +94,11 @@ func NewBadQueryError(err any) HttpErr {
 }
 
 func NewInternalServerError(err any) HttpErr {
+
+	if e, ok := err.(error); ok {
+		err = e.Error()
+	}
+
 	return HttpError{
 		ErrStatus:      http.StatusInternalServerError,
 		ErrError:       ErrInternalServer.Error(),
@@ -125,10 +145,15 @@ func ParseErrors(err error) HttpErr {
 		return NewHttpError(http.StatusRequestTimeout, ErrRequestTimeout.Error(), err.Error())
 
 	case strings.Contains(err.Error(), "strconv.ParseInt"):
-		return NewHttpError(http.StatusUnprocessableEntity, ErrInvalidSyntax.Error(), err.Error())
+
+		value := strings.Trim(strings.TrimSuffix(strings.TrimPrefix(err.Error(), "strconv.ParseInt: parsing "), ": invalid syntax"), `\"`)
+
+		return NewHttpError(http.StatusUnprocessableEntity, ErrInvalidSyntax.Error(), fmt.Sprintf("this value ` %s ` is invalid", value))
 
 	case strings.Contains(err.Error(), "violates check constraint"):
 		return NewHttpError(http.StatusUnprocessableEntity, err.Error(), ErrUnSupportedEntity.Error())
+	case strings.Contains(err.Error(), "edit conflict"):
+		return NewHttpError(http.StatusConflict, ErrEditConflict.Error(), err)
 
 	default:
 
@@ -158,6 +183,8 @@ func ParseValidationErrors(err error) HttpErr {
 				msg = fmt.Sprintf("%s should be greater than %s", f.Field(), f.Param())
 			case "alpha":
 				msg = "Should be alpha characters only"
+			case "unique":
+				msg = fmt.Sprintf("%s should be unique", f.Field())
 			case "numeric":
 				msg = "Should be numbers only"
 			case "oneof":

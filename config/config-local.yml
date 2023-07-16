@@ -11,8 +11,8 @@ server:
 postgres:
   PostgresqlHost: localhost
   PostgresqlPort: 5432
-  PostgresqlUser: postgres
-  PostgresqlPassword: postgres
+  PostgresqlUser: abdo
+  PostgresqlPassword: abdo
   PostgresqlDbname: moviesapp
   PostgresqlSslmode: false
   PgDriver: pgx

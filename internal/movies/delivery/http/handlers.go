@@ -8,7 +8,7 @@ import (
 	"github.com/AbdulwahabNour/movies/config"
 	"github.com/AbdulwahabNour/movies/internal/movies"
 
-	"github.com/AbdulwahabNour/movies/internal/model"
+	model "github.com/AbdulwahabNour/movies/internal/model/movie"
 	"github.com/AbdulwahabNour/movies/pkg/logger"
 	"github.com/AbdulwahabNour/movies/pkg/utils"
 	"github.com/gin-gonic/gin"
@@ -84,7 +84,22 @@ func (h *apiHandlers) ShowMovieHandler(c *gin.Context) {
 
 func (h *apiHandlers) ListMoviesHandler(c *gin.Context) {
 
-	c.JSON(http.StatusOK, gin.H{"status": "create a new movie"})
+	var filter model.MovieSearchQuery
+	err := c.ShouldBindQuery(&filter)
+	if err != nil {
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	movies, err := h.movieService.ListMoviesHandler(c, &filter)
+	if err != nil {
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	meataData := utils.CalculateMetaData(filter.Filter.TotalRecords, filter.Filter.Page, filter.Filter.PageSize)
+
+	c.JSON(http.StatusOK, gin.H{"metadata": meataData, "movies": movies})
 
 }
 func (h *apiHandlers) UpdateMovieHandler(c *gin.Context) {
@@ -106,10 +121,10 @@ func (h *apiHandlers) UpdateMovieHandler(c *gin.Context) {
 	}
 
 	movie.ID = id
-	ctx, cancle := context.WithTimeout(context.Background(), h.config.Server.CtxDefaultTimeout)
+	_, cancle := context.WithTimeout(context.Background(), h.config.Server.CtxDefaultTimeout)
 	defer cancle()
 
-	err = h.movieService.UpdateMovie(ctx, &movie)
+	err = h.movieService.UpdateMovie(c.Request.Context(), &movie)
 
 	if err != nil {
 		h.logger.ErrorLog("UpdateMovie h.movieService.UpdateMovie:", err)
