@@ -8,6 +8,12 @@ server:
   WriteTimeout: 30s
   CtxDefaultTimeout: 25s
   CSRF: false
+logger:
+  Development: true
+  DisableCaller: false
+  DisableStacktrace: false
+  Formate: json
+  Level: info
 postgres:
   PostgresqlHost: localhost
   PostgresqlPort: 5432

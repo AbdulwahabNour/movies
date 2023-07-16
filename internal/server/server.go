@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/AbdulwahabNour/movies/config"
+	"github.com/AbdulwahabNour/movies/internal/middlewares"
 	moviesHttp "github.com/AbdulwahabNour/movies/internal/movies/delivery/http"
 	psqlRepo "github.com/AbdulwahabNour/movies/internal/movies/repository/postgres"
 	"github.com/AbdulwahabNour/movies/internal/movies/service"
@@ -34,7 +35,7 @@ type Server struct {
 
 func NewServer(config *config.Config, logger logger.Logger, db *sqlx.DB) *Server {
 	return &Server{
-		ginEngin: gin.Default(),
+		ginEngin: gin.New(),
 		validate: validator.New(),
 		config:   config,
 		Logger:   logger,
@@ -56,6 +57,10 @@ func (s *Server) MapHandler(g *gin.Engine) error {
 }
 
 func (s *Server) Run() error {
+	middleware := middlewares.NewMiddleWares(s.config, s.Logger)
+	s.ginEngin.Use(middleware.LoggingMiddleware())
+
+	s.ginEngin.Use(gin.Recovery())
 
 	err := s.MapHandler(s.ginEngin)
 

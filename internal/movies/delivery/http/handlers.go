@@ -41,8 +41,8 @@ func (h *apiHandlers) CreateMovieHandler(c *gin.Context) {
 	defer cancle()
 
 	if err := utils.ReadRequestJSON(c, &movie); err != nil {
+		utils.ErrorLogWithFields(h.logger, c, "CreateMovieHandler", err)
 
-		h.logger.ErrorLog("CreateMovie utils.ReadRequestJSON", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -50,7 +50,8 @@ func (h *apiHandlers) CreateMovieHandler(c *gin.Context) {
 	err := h.movieService.CreateMovie(ctx, &movie)
 
 	if err != nil {
-		h.logger.ErrorLog("CreateMovie h.movieService.CreateMovie", err)
+
+		utils.ErrorLogWithFields(h.logger, c, "CreateMovieHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -64,7 +65,8 @@ func (h *apiHandlers) ShowMovieHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 
 	if err != nil {
-		h.logger.ErrorLog("ShowMovie strconv.ParseInt: ", err)
+		utils.ErrorLogWithFields(h.logger, c, "ShowMovie", err)
+
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -73,7 +75,7 @@ func (h *apiHandlers) ShowMovieHandler(c *gin.Context) {
 
 	movie, err := h.movieService.GetMovie(ctx, id)
 	if err != nil {
-		h.logger.ErrorLog("ShowMovie h.movieService.GetMovie:", err)
+		utils.ErrorLogWithFields(h.logger, c, "ShowMovie", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -85,14 +87,19 @@ func (h *apiHandlers) ShowMovieHandler(c *gin.Context) {
 func (h *apiHandlers) ListMoviesHandler(c *gin.Context) {
 
 	var filter model.MovieSearchQuery
+
 	err := c.ShouldBindQuery(&filter)
+
 	if err != nil {
+		utils.ErrorLogWithFields(h.logger, c, "ListMoviesHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
 
 	movies, err := h.movieService.ListMoviesHandler(c, &filter)
+
 	if err != nil {
+		utils.ErrorLogWithFields(h.logger, c, "ListMoviesHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -109,13 +116,13 @@ func (h *apiHandlers) UpdateMovieHandler(c *gin.Context) {
 	var movie model.Movie
 
 	if err != nil {
-		h.logger.ErrorLog("UpdateMovie strconv.ParseInt :", err)
+		utils.ErrorLogWithFields(h.logger, c, "UpdateMovie", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
 
 	if err := utils.ReadRequestJSON(c, &movie); err != nil {
-		h.logger.ErrorLog("UpdateMovie utils.ReadRequestJSON :", err)
+		utils.ErrorLogWithFields(h.logger, c, "UpdateMovie", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -127,7 +134,7 @@ func (h *apiHandlers) UpdateMovieHandler(c *gin.Context) {
 	err = h.movieService.UpdateMovie(c.Request.Context(), &movie)
 
 	if err != nil {
-		h.logger.ErrorLog("UpdateMovie h.movieService.UpdateMovie:", err)
+		utils.ErrorLogWithFields(h.logger, c, "UpdateMovie", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -136,7 +143,7 @@ func (h *apiHandlers) UpdateMovieHandler(c *gin.Context) {
 func (h *apiHandlers) DeleteMovieHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		h.logger.ErrorLog("DeleteMovie strconv.ParseInt :", err)
+		utils.ErrorLogWithFields(h.logger, c, "DeleteMovie", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -145,7 +152,7 @@ func (h *apiHandlers) DeleteMovieHandler(c *gin.Context) {
 
 	err = h.movieService.DeleteMovie(ctx, id)
 	if err != nil {
-		h.logger.ErrorLog("DeleteMovie h.movieService.DeleteMovie :", err)
+		utils.ErrorLogWithFields(h.logger, c, "DeleteMovie", err)
 		utils.ErrorResponse(c, err)
 		return
 	}

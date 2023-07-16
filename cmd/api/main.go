@@ -23,7 +23,7 @@ func main() {
 		log.Fatalf("Failed to parse config: %v", err)
 
 	}
-	logger := logger.NewApiLogger()
+	logger := logger.NewApiLogger(conf)
 
 	psql, err := postgres.ConnectSql(conf)
 	if err != nil {
