@@ -6,5 +6,5 @@ Create table if not exists movies(
     year integer not null,
     runtime integer not null,
     genres text[] not null,
-    version uuid not null default uuid_generate_v1()
+    version uuid not null default uuid_generate_v4()
 );
