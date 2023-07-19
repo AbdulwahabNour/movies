@@ -6,13 +6,13 @@ import (
 )
 
 type MiddleWares struct {
-	cfg    *config.Config
+	config *config.Config
 	logger logger.Logger
 }
 
-func NewMiddleWares(cfg *config.Config, logger logger.Logger) *MiddleWares {
+func NewMiddleWares(config *config.Config, logger logger.Logger) *MiddleWares {
 	return &MiddleWares{
-		cfg:    cfg,
+		config: config,
 		logger: logger,
 	}
 }

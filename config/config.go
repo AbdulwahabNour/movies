@@ -12,6 +12,7 @@ type Config struct {
 	Postgres PostgresConfig
 	Logger   LoggerConfig
 	Cookie   Cookie
+	Limiter  Limiter
 }
 
 type ServerConfig struct {
@@ -47,6 +48,11 @@ type Cookie struct {
 	MaxAge   int
 	Secure   bool
 	HTTPOnly bool
+}
+type Limiter struct {
+	Rps     float32
+	Burst   int
+	Enabled bool
 }
 
 func LoadConfig(fileName string) (*viper.Viper, error) {

@@ -27,3 +27,7 @@ cookie:
   MaxAge: 86400
   Secure: false
   HttpOnly: true
+limiter:
+  RPS: 2
+  Burst: 4
+  Enabled: true
