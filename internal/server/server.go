@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/AbdulwahabNour/movies/config"
@@ -90,11 +91,18 @@ func (s *Server) Run() error {
 	s.Logger.InfoLog(fmt.Sprintf("Server running on port %s", s.config.Server.Port))
 
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	<-c
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	mesg := <-c
+	s.Logger.InfoLog(fmt.Sprintf("Server exiting with signal %s", mesg))
+
 	ctx, cancle := context.WithTimeout(context.Background(), 15*time.Second)
+
 	defer cancle()
-	srv.Shutdown(ctx)
+	err = srv.Shutdown(ctx)
+	if err != nil {
+		return err
+	}
+
 	s.Logger.InfoLog("Server exiting")
 	return nil
 
