@@ -30,7 +30,7 @@ func NewApiLogger(conf *config.Config) Logger {
 }
 
 func setLogLevel(level string, logger *log.Logger) {
-
+	recover()
 	switch level {
 	case "error":
 		logger.SetLevel(log.ErrorLevel)

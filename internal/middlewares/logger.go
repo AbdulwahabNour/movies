@@ -40,7 +40,6 @@ func (m *MiddleWares) LoggingMiddleware() gin.HandlerFunc {
 			"LATENCY":   latencyTime,
 			"CLIENT_IP": clientIP,
 		}, "HTTP REQUEST")
-
 		ctx.Next()
 	}
 }

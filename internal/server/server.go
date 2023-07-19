@@ -59,6 +59,7 @@ func (s *Server) MapHandler(g *gin.Engine) error {
 func (s *Server) Run() error {
 	middleware := middlewares.NewMiddleWares(s.config, s.Logger)
 	s.ginEngin.Use(middleware.LoggingMiddleware())
+	s.ginEngin.Use(middleware.RateLimitMiddleware())
 
 	s.ginEngin.Use(gin.Recovery())
 

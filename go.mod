@@ -10,6 +10,7 @@ require (
 	github.com/lib/pq v1.10.2
 	github.com/sirupsen/logrus v1.9.2
 	github.com/spf13/viper v1.16.0
+	golang.org/x/time v0.1.0
 )
 
 require (

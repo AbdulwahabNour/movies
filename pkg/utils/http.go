@@ -27,7 +27,6 @@ func ErrorResponse(c *gin.Context, err error) {
 
 	m := httpError.ParseErrors(err)
 
-	// c.AbortWithError(http.StatusBadRequest, m)
-	c.JSON(m.Status(), gin.H{"error": m})
+	c.AbortWithStatusJSON(m.Status(), gin.H{"error": m})
 
 }
