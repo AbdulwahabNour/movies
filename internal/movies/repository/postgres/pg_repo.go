@@ -41,10 +41,9 @@ func (r *movieRepo) CreateMovie(ctx context.Context, movie *model.Movie) error {
 }
 func (r *movieRepo) GetMovie(ctx context.Context, id int64) (*model.Movie, error) {
 
-	query := `SELECT pg_sleep(28), id, title, year, runtime, genres, create_at, version FROM movies WHERE id = $1`
+	query := `SELECT id, title, year, runtime, genres, create_at, version FROM movies WHERE id = $1`
 	var movie model.Movie
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&[]byte{},
 		&movie.ID,
 		&movie.Title,
 		&movie.Year,
