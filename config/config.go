@@ -20,7 +20,7 @@ type ServerConfig struct {
 	Port              string
 	Mode              string
 	JwtSecretKey      string
-	PeperSecreKey     string
+	PepperSecreKey    string
 	ReadTimeout       time.Duration
 	WriteTimeout      time.Duration
 	CtxDefaultTimeout time.Duration

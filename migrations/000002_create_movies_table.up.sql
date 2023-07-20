@@ -1,4 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 Create table if not exists movies(
     id bigserial primary key,
     create_at timestamp(0) with time zone not null default now(),

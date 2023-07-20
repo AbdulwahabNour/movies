@@ -10,6 +10,7 @@ require (
 	github.com/lib/pq v1.10.2
 	github.com/sirupsen/logrus v1.9.2
 	github.com/spf13/viper v1.16.0
+	golang.org/x/crypto v0.9.0
 	golang.org/x/time v0.1.0
 )
 
@@ -43,7 +44,6 @@ require (
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect

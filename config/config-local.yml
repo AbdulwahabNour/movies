@@ -3,7 +3,7 @@ server:
   Port: :8000
   Mode: Development
   JwtSecretKey: secretkey
-  PeperSecreKey: secretkey
+  PepperSecreKey: secretkey
   ReadTimeout: 30s
   WriteTimeout: 30s
   CtxDefaultTimeout: 25s
