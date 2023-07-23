@@ -24,6 +24,7 @@ var (
 	ErrInvalidJsonFormat = errors.New("request body contains invalid formed  Json")
 	ErrUnexpectedEOF     = errors.New("an unexpected end of input occurred. The data provided is incomplete or truncated")
 	ErrEditConflict      = errors.New("unable to update the record due to an edit conflict, please try again")
+	ErrDuplicateEmail    = errors.New("user already exist")
 )
 
 type HttpErr interface {
@@ -143,6 +144,9 @@ func ParseErrors(err error) HttpErr {
 
 	case errors.Is(err, context.DeadlineExceeded):
 		return NewHttpError(http.StatusRequestTimeout, ErrRequestTimeout.Error(), err.Error())
+
+	case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
+		return NewHttpError(http.StatusConflict, ErrDuplicateEmail.Error(), err.Error())
 
 	case strings.Contains(err.Error(), "strconv.ParseInt"):
 

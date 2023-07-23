@@ -12,8 +12,12 @@ import (
 	"github.com/AbdulwahabNour/movies/config"
 	"github.com/AbdulwahabNour/movies/internal/middlewares"
 	moviesHttp "github.com/AbdulwahabNour/movies/internal/movies/delivery/http"
-	psqlRepo "github.com/AbdulwahabNour/movies/internal/movies/repository/postgres"
-	"github.com/AbdulwahabNour/movies/internal/movies/service"
+	moviesRepo "github.com/AbdulwahabNour/movies/internal/movies/repository/postgres"
+	moviesService "github.com/AbdulwahabNour/movies/internal/movies/service"
+
+	usersHttp "github.com/AbdulwahabNour/movies/internal/users/delivery/http"
+	usersRepo "github.com/AbdulwahabNour/movies/internal/users/repository/postgres"
+	usersService "github.com/AbdulwahabNour/movies/internal/users/service"
 	"github.com/go-playground/validator/v10"
 
 	"github.com/AbdulwahabNour/movies/pkg/logger"
@@ -23,7 +27,6 @@ import (
 
 const (
 	maxHeaderBytes = 1 << 20 //1MB
-	ctxTimeout     = 5
 )
 
 type Server struct {
@@ -46,11 +49,17 @@ func NewServer(config *config.Config, logger logger.Logger, db *sqlx.DB) *Server
 
 func (s *Server) MapHandler(g *gin.Engine) error {
 
-	movieRepo := psqlRepo.NewMovieRepo(s.db)
-	movieService := service.NewMovieService(s.config, movieRepo, s.Logger, s.validate)
+	movieRepo := moviesRepo.NewMovieRepo(s.db)
+
+	movieService := moviesService.NewMovieService(s.config, movieRepo, s.Logger, s.validate)
 	movieHandler := moviesHttp.NewMovieHandlers(s.config, movieService, s.Logger)
 
+	userRepo := usersRepo.NewUserRepo(s.db)
+	userService := usersService.NewUserService(s.config, userRepo, s.Logger, s.validate)
+	userHandler := usersHttp.NewMovieHandlers(s.config, userService, s.Logger)
+
 	v1 := g.Group("/api/v1")
+	usersHttp.MapUsersRoutes(v1, userHandler)
 	moviesHttp.MapMoviesRoutes(v1, movieHandler)
 
 	return nil
@@ -60,6 +69,7 @@ func (s *Server) MapHandler(g *gin.Engine) error {
 func (s *Server) Run() error {
 	middleware := middlewares.NewMiddleWares(s.config, s.Logger)
 	s.ginEngin.Use(middleware.LoggingMiddleware())
+
 	if s.config.Limiter.Enabled {
 		s.ginEngin.Use(middleware.RateLimitMiddleware())
 	}

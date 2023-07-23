@@ -8,6 +8,7 @@ import (
 )
 
 func ReadRequestJSON(c *gin.Context, v any) error {
+
 	return c.ShouldBindJSON(v)
 }
 
