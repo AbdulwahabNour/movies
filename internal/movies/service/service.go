@@ -9,6 +9,7 @@ import (
 	"github.com/AbdulwahabNour/movies/pkg/httpError"
 	"github.com/AbdulwahabNour/movies/pkg/logger"
 	"github.com/go-playground/validator/v10"
+	"github.com/sirupsen/logrus"
 )
 
 type movieService struct {
@@ -28,76 +29,81 @@ func NewMovieService(config *config.Config, repo movies.Repository, logger logge
 }
 
 func (s *movieService) CreateMovie(ctx context.Context, movie *model.Movie) error {
-	err := s.checkMovie(movie)
+
+	if err := s.checkMovie(movie); err != nil {
+		return httpError.NewUnprocessableEntityError(err)
+	}
+	err := s.repo.CreateMovie(ctx, movie)
 	if err != nil {
-		return err
+		s.logger.ErrorLogWithFields(logrus.Fields{"method": "movies.service.CreateMovie", "query": *movie}, err)
+		return httpError.NewInternalServerError("error happen during create movie try again later")
 	}
 
-	return s.repo.CreateMovie(ctx, movie)
+	return nil
 }
 func (s *movieService) GetMovie(ctx context.Context, id int64) (*model.Movie, error) {
 	if id < 1 {
-		return nil, httpError.NewBadRequestError(httpError.ErrBadQuery)
+		return nil, httpError.NewNotFoundError("movie not found")
+	}
+	movie, err := s.repo.GetMovie(ctx, id)
+	if err != nil {
+		return nil, httpError.NewInternalServerError(err)
 	}
 
-	return s.repo.GetMovie(ctx, id)
+	return movie, nil
 }
-func (s *movieService) ListMoviesHandler(ctx context.Context, query *model.MovieSearchQuery) ([]*model.Movie, error) {
-	query.PrepareForQuery()
+func (s *movieService) ListMovies(ctx context.Context, query *model.MovieSearchQuery) ([]*model.Movie, error) {
 
 	if err := s.validate.Struct(query); err != nil {
 		return nil, httpError.ParseValidationErrors(err)
 	}
-	movies, err := s.repo.ListMoviesHandler(ctx, query)
+	query.PrepareForQuery()
+
+	movies, err := s.repo.ListMovies(ctx, query)
 
 	if err != nil {
 		return nil, httpError.NewInternalServerError(err)
-
 	}
 	return movies, nil
 }
 func (s *movieService) UpdateMovie(ctx context.Context, movie *model.Movie) error {
-
-	if movie.ID < 1 {
-		return httpError.NewBadRequestError(httpError.ErrBadQuery)
-	}
 	if movie.IsEmpty() {
-		return httpError.NewBadRequestError(httpError.ErrInvalidSyntax)
+		return httpError.NewBadRequestError("The JSON payload is empty. Please provide valid data to update the movie.")
 	}
-
 	getMovie, err := s.GetMovie(ctx, movie.ID)
-
-	if err != nil {
-		return httpError.NewNotFoundError(err)
-	}
-
-	movie.Copy(getMovie)
-
-	err = s.checkMovie(movie)
 	if err != nil {
 		return err
 	}
 
-	return s.repo.UpdateMovie(ctx, movie)
+	getMovie.PrepareForUpdate(movie)
+
+	if err := s.checkMovie(getMovie); err != nil {
+		return err
+	}
+
+	if err := s.repo.UpdateMovie(ctx, getMovie); err != nil {
+		return httpError.NewInternalServerError(err)
+	}
+
+	return nil
 }
 func (s *movieService) DeleteMovie(ctx context.Context, id int64) error {
 	if id < 1 {
-		return httpError.NewBadRequestError(httpError.ErrBadQuery)
+		return httpError.NewBadRequestError("movie id less than 1")
 	}
-
-	return s.repo.DeleteMovie(ctx, id)
+	if err := s.repo.DeleteMovie(ctx, id); err != nil {
+		return httpError.NewInternalServerError(err)
+	}
+	return nil
 }
 func (s *movieService) checkMovie(movie *model.Movie) error {
-
 	validate := movie.ValidateMovie()
-
-	if len(validate) != 0 {
+	if movie.ID < 0 {
+		return httpError.NewBadRequestError("movie id less than 0")
+	} else if len(validate) != 0 {
 		return httpError.NewUnprocessableEntityError(validate)
-	}
-
-	if err := s.validate.Struct(movie); err != nil {
+	} else if err := s.validate.Struct(movie); err != nil {
 		return httpError.ParseValidationErrors(err)
 	}
-
 	return nil
 }
