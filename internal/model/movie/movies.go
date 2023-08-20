@@ -52,37 +52,23 @@ func (movie *Movie) ValidateGenres() bool {
 
 }
 
-// Copy copy the fields of the given Movie to the current non empty fields of the Movie.
-func (movie *Movie) Copy(m *Movie) {
-	// Set the ID field.
-	movie.ID = m.ID
+func (movie *Movie) PrepareForUpdate(m *Movie) {
 
-	// If the trimmed Title field is empty, set it to the given Title.
-	if strings.TrimSpace(movie.Title) == "" {
+	if m.Title != "" {
 		movie.Title = m.Title
 	}
 
-	// If the Year field is 0, set it to the given Year.
-	if movie.Year == 0 {
+	if m.Year > 0 {
 		movie.Year = m.Year
 	}
 
-	// If the Runtime field is 0, set it to the given Runtime.
-	if movie.Runtime == 0 {
+	if m.Runtime > 0 {
 		movie.Runtime = m.Runtime
 	}
 
-	// If the Genres field is nil, set it to the given Genres.
-	if movie.Genres == nil {
+	if m.Genres != nil {
 		movie.Genres = m.Genres
 	}
-
-	// Set the Version field.
-	movie.Version = m.Version
-
-	// Set the CreateAt field.
-	movie.CreateAt = m.CreateAt
-
 }
 
 func (m *Movie) IsEmpty() bool {
@@ -119,10 +105,10 @@ func (f Filters) SortDirection() string {
 }
 
 func (q *MovieSearchQuery) PrepareForQuery() {
-	if q.Filter.Page == 0 {
+	if q.Filter.Page <= 0 {
 		q.Filter.Page = 1
 	}
-	if q.Filter.PageSize == 0 {
+	if q.Filter.PageSize <= 0 {
 		q.Filter.PageSize = 10
 	}
 	if q.Filter.Sort == "" {
