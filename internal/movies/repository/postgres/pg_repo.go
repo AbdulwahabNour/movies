@@ -63,7 +63,7 @@ func (r *movieRepo) GetMovie(ctx context.Context, id int64) (*model.Movie, error
 	return &movie, nil
 }
 
-func (r *movieRepo) ListMoviesHandler(ctx context.Context, filter *model.MovieSearchQuery) ([]*model.Movie, error) {
+func (r *movieRepo) ListMovies(ctx context.Context, filter *model.MovieSearchQuery) ([]*model.Movie, error) {
 
 	query := fmt.Sprintf(`SELECT count(*) over() ,id, create_at, title, year, runtime, genres, version FROM movies 
 	WHERE (to_tsvector('simple',title) @@ plainto_tsquery('simple', $1) OR $1 = '') AND (genres @> $2 OR $2 = '{}')
