@@ -23,18 +23,25 @@ func NewUserRepo(db *sqlx.DB) users.Repository {
 
 func (u *userRepo) InsertUser(ctx context.Context, user *model.User) error {
 	query := `INSERT INTO users (name, email, password_hash, activated) VALUES ($1, $2, $3, $4) RETURNING id, create_at, version`
+	if user.Activated == nil {
+		user.Activated = new(bool)
+		*user.Activated = false
+	}
 
 	err := u.db.QueryRowContext(ctx,
 		query,
 		user.Name,
 		user.Email,
 		user.HashedPassword,
-		user.Actived).Scan(&user.ID, &user.CreateAt, &user.Version)
-	return err
+		*user.Activated).Scan(&user.ID, &user.CreateAt, &user.Version)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (u *userRepo) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
-	query := `SELECT id, create_at, name, email, password_hash, activated version FROM users WHERE email= $1`
+	query := `SELECT id, create_at, name, email, password_hash, activated, version FROM users WHERE email= $1`
 	var user model.User
 	err := u.db.QueryRowContext(ctx, query, email).Scan(
 		&user.ID,
@@ -42,10 +49,38 @@ func (u *userRepo) GetUserByEmail(ctx context.Context, email string) (*model.Use
 		&user.Name,
 		&user.Email,
 		&user.HashedPassword,
-		&user.Actived,
+		&user.Activated,
 		&user.Version)
 	if err != nil {
-		return nil, err
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, fmt.Errorf("user with email %s not found", email)
+		default:
+			return nil, err
+		}
+	}
+	return &user, nil
+}
+func (u *userRepo) GetUserByID(ctx context.Context, id int64) (*model.User, error) {
+	query := `SELECT id, create_at, name, email, password_hash, activated, version FROM users WHERE id= $1`
+	var user model.User
+	err := u.db.QueryRowContext(ctx, query, id).Scan(
+		&user.ID,
+		&user.CreateAt,
+		&user.Name,
+		&user.Email,
+		&user.HashedPassword,
+		&user.Activated,
+		&user.Version)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, fmt.Errorf("user with id %d not found", id)
+		default:
+			return nil, err
+		}
+
 	}
 	return &user, nil
 }
@@ -55,7 +90,9 @@ func (u *userRepo) UpdateUser(ctx context.Context, user *model.User) error {
 		&user.Name,
 		&user.Email,
 		&user.HashedPassword,
-		&user.Actived).Scan(&user.Version)
+		&user.Activated,
+		&user.ID,
+		user.Version).Scan(&user.Version)
 
 	if err != nil {
 		switch {
@@ -69,7 +106,7 @@ func (u *userRepo) UpdateUser(ctx context.Context, user *model.User) error {
 	return nil
 }
 
-func (u *userRepo) DeleteUser(ctx context.Context, id int) error {
+func (u *userRepo) DeleteUser(ctx context.Context, id int64) error {
 	query := `DELETE FROM users WHERE id=$1`
 	_, err := u.db.ExecContext(ctx, query, id)
 	if err != nil {
