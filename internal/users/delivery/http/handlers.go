@@ -27,12 +27,12 @@ func NewMovieHandlers(app *config.Config, serv users.Service, logger logger.Logg
 	}
 }
 
-func (h *apiHandlers) CreateUserHandler(c *gin.Context) {
-	var user model.User
+func (h *apiHandlers) SignUpHandler(c *gin.Context) {
+	var user model.SignUpInput
 
 	err := utils.ReadRequestJSON(c, &user)
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "CreateUserHandler", err)
+		utils.GinErrorLogWithFields(h.logger, c, "users.handlers.SignUpHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -40,14 +40,38 @@ func (h *apiHandlers) CreateUserHandler(c *gin.Context) {
 	ctx, cancle := context.WithTimeout(context.Background(), h.config.Server.CtxDefaultTimeout)
 	defer cancle()
 
-	err = h.userService.InsertUser(ctx, &user)
+	_, err = h.userService.SignUp(ctx, &user)
+
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "CreateUserHandler", err)
+		utils.GinErrorLogWithFields(h.logger, c, "users.handlers.SignUpHandler.SignUp", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
 
-	utils.Response(c, http.StatusOK, gin.H{"status": "created", "user": user})
+	utils.Response(c, http.StatusOK, gin.H{"status": "created"})
+}
+func (h *apiHandlers) SigInHandler(c *gin.Context) {
+	var userLogin model.SignIn
+
+	err := utils.ReadRequestJSON(c, &userLogin)
+	if err != nil {
+		utils.GinErrorLogWithFields(h.logger, c, "users.handlers.SigInHandler", err)
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	ctx, cancle := context.WithTimeout(context.Background(), h.config.Server.CtxDefaultTimeout)
+	defer cancle()
+
+	userWithtoken, err := h.userService.SigIn(ctx, &userLogin)
+
+	if err != nil {
+		utils.GinErrorLogWithFields(h.logger, c, "users.handlers.SigInHandler.SigIn", err)
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	utils.Response(c, http.StatusOK, gin.H{"status": "success", "data": userWithtoken})
 }
 func (h *apiHandlers) GetUserByEmailHandler(c *gin.Context) {
 
@@ -58,7 +82,7 @@ func (h *apiHandlers) GetUserByEmailHandler(c *gin.Context) {
 	user, err := h.userService.GetUserByEmail(ctx, email)
 
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "GetUserByEmailHandler", err)
+		utils.GinErrorLogWithFields(h.logger, c, "users.handlers.GetUserByEmailHandler.GetUserByEmail", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -71,14 +95,14 @@ func (h *apiHandlers) UpdateuUserHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "UpdateuUserHandler", err)
+		utils.GinErrorLogWithFields(h.logger, c, "users.handlers.UpdateuUserHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
 
 	err = utils.ReadRequestJSON(c, &user)
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "UpdateuUserHandler", err)
+		utils.GinErrorLogWithFields(h.logger, c, "users.handlers.UpdateuUserHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -88,7 +112,7 @@ func (h *apiHandlers) UpdateuUserHandler(c *gin.Context) {
 	err = h.userService.UpdateUser(ctx, &user)
 
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "UpdateuUserHandler", err)
+		utils.GinErrorLogWithFields(h.logger, c, "users.handlers.UpdateuUserHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -96,10 +120,10 @@ func (h *apiHandlers) UpdateuUserHandler(c *gin.Context) {
 	utils.Response(c, http.StatusOK, gin.H{"status": "updated", "user": user})
 }
 func (h *apiHandlers) DeleteUserHandler(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "DeleteUserHandler", err)
+		utils.GinErrorLogWithFields(h.logger, c, "users.handlers.DeleteUserHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -108,9 +132,10 @@ func (h *apiHandlers) DeleteUserHandler(c *gin.Context) {
 	err = h.userService.DeleteUser(ctx, id)
 
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "DeleteUserHandler", err)
+		utils.GinErrorLogWithFields(h.logger, c, "users.handlers.DeleteUserHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
+
 	utils.Response(c, http.StatusOK, gin.H{"status": "deleted"})
 }
