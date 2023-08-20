@@ -14,7 +14,7 @@ import (
 
 var (
 	ErrNotFound          = errors.New("not Found")
-	ErrBadQuery          = errors.New("invalid Query parameter")
+	ErrBadQuery          = errors.New("invalid query parameter")
 	ErrBadRequest        = errors.New("bad request")
 	ErrRequestTimeout    = errors.New("request Timeout")
 	ErrInternalServer    = errors.New("internal Server Error")
@@ -24,7 +24,8 @@ var (
 	ErrInvalidJsonFormat = errors.New("request body contains invalid formed  Json")
 	ErrUnexpectedEOF     = errors.New("an unexpected end of input occurred. The data provided is incomplete or truncated")
 	ErrEditConflict      = errors.New("unable to update the record due to an edit conflict, please try again")
-	ErrDuplicateEmail    = errors.New("user already exist")
+	ErrDuplicateValue    = errors.New("duplicate value violates")
+	ErrUnauthorized      = errors.New("Unauthorized")
 )
 
 type HttpErr interface {
@@ -83,6 +84,17 @@ func NewNotFoundError(err any) HttpErr {
 	}
 }
 
+func NewUnAuthorizedError(err any) HttpErr {
+	if e, ok := err.(error); ok {
+		err = e.Error()
+	}
+
+	return HttpError{
+		ErrStatus:      http.StatusUnauthorized,
+		ErrError:       ErrUnauthorized.Error(),
+		ErrDescription: err,
+	}
+}
 func NewBadQueryError(err any) HttpErr {
 	if e, ok := err.(error); ok {
 		err = e.Error()
@@ -107,6 +119,9 @@ func NewInternalServerError(err any) HttpErr {
 	}
 }
 func NewUnprocessableEntityError(err any) HttpErr {
+	if e, ok := err.(error); ok {
+		err = e.Error()
+	}
 	return HttpError{
 		ErrStatus:      http.StatusUnprocessableEntity,
 		ErrError:       ErrUnSupportedEntity.Error(),
@@ -115,38 +130,34 @@ func NewUnprocessableEntityError(err any) HttpErr {
 }
 func ParseErrors(err error) HttpErr {
 
-	if httperr, ok := err.(HttpErr); ok {
-		return httperr
-	}
-
 	var unmarshalTypeError *json.UnmarshalTypeError
 
 	switch {
 
 	case errors.As(err, new(*json.SyntaxError)):
-		return NewHttpError(http.StatusBadRequest, ErrInvalidJsonFormat.Error(), err.Error())
+		return NewHttpError(http.StatusBadRequest, ErrBadRequest.Error(), ErrInvalidJsonFormat.Error())
 
 	case errors.Is(err, io.ErrUnexpectedEOF):
-		return NewHttpError(http.StatusBadRequest, ErrUnexpectedEOF.Error(), err.Error())
+		return NewHttpError(http.StatusBadRequest, ErrBadRequest.Error(), ErrUnexpectedEOF.Error())
 
 	case errors.As(err, &unmarshalTypeError):
 		return NewHttpError(http.StatusBadRequest, ErrInvalidSyntax.Error(), fmt.Sprintf("invalid type specified for field %s at position %d", unmarshalTypeError.Field, unmarshalTypeError.Offset))
 
 	case strings.HasPrefix(err.Error(), "json: unknown field"):
 		fieldName := strings.TrimPrefix(err.Error(), "json: unknown field")
-		return NewHttpError(http.StatusBadRequest, fmt.Sprintf("Request body contains unknown field %s", fieldName), err.Error())
+		return NewHttpError(http.StatusBadRequest, ErrBadRequest.Error(), fmt.Sprintf("Request body contains unknown field %s", fieldName))
 
 	case errors.Is(err, io.EOF):
-		return NewHttpError(http.StatusBadRequest, "request body must not be empty", err.Error())
+		return NewHttpError(http.StatusBadRequest, ErrBadRequest.Error(), "request body must not be empty")
 
 	case err.Error() == "http: request body too large":
-		return NewHttpError(http.StatusRequestEntityTooLarge, "request body must not be larger than 1MB", err.Error())
+		return NewHttpError(http.StatusRequestEntityTooLarge, err.Error(), "request body must not be larger than 1MB")
 
 	case errors.Is(err, context.DeadlineExceeded):
 		return NewHttpError(http.StatusRequestTimeout, ErrRequestTimeout.Error(), err.Error())
 
 	case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
-		return NewHttpError(http.StatusConflict, ErrDuplicateEmail.Error(), err.Error())
+		return NewHttpError(http.StatusConflict, ErrDuplicateValue.Error(), "user already exist")
 
 	case strings.Contains(err.Error(), "strconv.ParseInt"):
 
@@ -157,10 +168,9 @@ func ParseErrors(err error) HttpErr {
 	case strings.Contains(err.Error(), "violates check constraint"):
 		return NewHttpError(http.StatusUnprocessableEntity, err.Error(), ErrUnSupportedEntity.Error())
 	case strings.Contains(err.Error(), "edit conflict"):
-		return NewHttpError(http.StatusConflict, ErrEditConflict.Error(), err)
+		return NewHttpError(http.StatusConflict, ErrEditConflict.Error(), "The operation could not be completed due to a conflict with existing data.")
 
 	default:
-
 		return NewInternalServerError(err.Error())
 	}
 
