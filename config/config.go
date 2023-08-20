@@ -10,21 +10,30 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Postgres PostgresConfig
+	Redis    RedisConfig
+	Mail     Mail
 	Logger   LoggerConfig
 	Cookie   Cookie
 	Limiter  Limiter
 }
 
 type ServerConfig struct {
-	AppVersion        string
-	Port              string
-	Mode              string
-	JwtSecretKey      string
-	PepperSecreKey    string
-	ReadTimeout       time.Duration
-	WriteTimeout      time.Duration
-	CtxDefaultTimeout time.Duration
-	CSRF              bool
+	AppVersion               string
+	AppName                  string
+	AppHost                  string
+	Port                     string
+	Mode                     string
+	JwtSecretKey             string
+	PrivateKeyToken          string
+	PublicKeyToken           string
+	IDExpiration             time.Duration
+	RefreshExpiratio         time.Duration
+	ActivationTokenExpiratio time.Duration
+	PepperSecreKey           string
+	ReadTimeout              time.Duration
+	WriteTimeout             time.Duration
+	CtxDefaultTimeout        time.Duration
+	CSRF                     bool
 }
 
 type LoggerConfig struct {
@@ -41,6 +50,26 @@ type PostgresConfig struct {
 	PostgresqlDbname   string
 	PostgresqlSSLMode  bool
 	PgDriver           string
+}
+type RedisConfig struct {
+	RedisAddr      string
+	RedisPassword  string
+	RedisDB        string
+	RedisDefaultdb string
+	MinIdleConns   int
+	PoolSize       int
+	PoolTimeout    time.Duration
+	Password       string
+	DB             int
+}
+
+type Mail struct {
+	Host     string
+	Port     int
+	UserName string
+	Password string
+	Sender   string
+	TimeOut  time.Duration
 }
 
 type Cookie struct {
