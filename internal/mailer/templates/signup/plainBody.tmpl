@@ -1,0 +1,17 @@
+{{define "plainBody"}}
+{{$user := index .Data "user"}}
+{{$Appname := index .Data "appName"}}
+
+Welcome to {{$Appname}}, {{$user.Name}}!
+Discover a world of endless entertainment at your fingertips with {{$Appname}}.
+Explore an extensive collection of movies, from classic favorites to the latest blockbusters.
+
+Ready to Get Started?
+Sign in to your {{$Appname}} account and begin your cinematic journey.
+
+Have a question or need assistance? Contact our support team at support@{{$Appname}}.com
+Enjoy your movie adventure!
+Best regards,
+The {{$Appname}} Team
+
+{{end}}

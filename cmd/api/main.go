@@ -7,6 +7,7 @@ import (
 
 	"github.com/AbdulwahabNour/movies/internal/server"
 	"github.com/AbdulwahabNour/movies/pkg/db/postgres"
+	"github.com/AbdulwahabNour/movies/pkg/db/redis"
 	"github.com/AbdulwahabNour/movies/pkg/logger"
 )
 
@@ -29,7 +30,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	serv := server.NewServer(conf, logger, psql.Client)
+	defer psql.Client.Close()
+
+	redisClient := redis.NewRedisDB(conf)
+	defer redisClient.Client.Close()
+
+	serv := server.NewServer(conf, logger, psql.Client, redisClient.Client)
 	err = serv.Run()
 	if err != nil {
 		log.Fatalf("Failed to run server: %v", err)
