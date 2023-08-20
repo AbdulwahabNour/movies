@@ -13,9 +13,9 @@ func ReadRequestJSON(c *gin.Context, v any) error {
 }
 
 // Refactored function to log an error using the provided logger.
-func ErrorLogWithFields(log logger.Logger, c *gin.Context, logmsg any, err error) {
+func GinErrorLogWithFields(log logger.Logger, c *gin.Context, logMethod string, err error) {
 
-	log.ErrorLogWithFields(logrus.Fields{"err": err, "CLIENT_IP": c.ClientIP()}, logmsg)
+	log.ErrorLogWithFields(logrus.Fields{"method": logMethod, "CLIENT_IP": c.ClientIP()}, err)
 }
 
 // Response is a function that sends a JSON response with the given status code and message.
@@ -26,8 +26,12 @@ func Response(c *gin.Context, status int, message any) {
 
 func ErrorResponse(c *gin.Context, err error) {
 
-	m := httpError.ParseErrors(err)
+	httperr, ok := err.(httpError.HttpErr)
 
-	c.AbortWithStatusJSON(m.Status(), gin.H{"error": m})
+	if !ok {
+		httperr = httpError.ParseErrors(err)
+	}
+
+	c.AbortWithStatusJSON(httperr.Status(), gin.H{"error": httperr})
 
 }
