@@ -41,8 +41,7 @@ func (h *apiHandlers) CreateMovieHandler(c *gin.Context) {
 	defer cancle()
 
 	if err := utils.ReadRequestJSON(c, &movie); err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "CreateMovieHandler", err)
-
+		utils.GinErrorLogWithFields(h.logger, c, "movies.handlers.CreateMovieHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -50,8 +49,7 @@ func (h *apiHandlers) CreateMovieHandler(c *gin.Context) {
 	err := h.movieService.CreateMovie(ctx, &movie)
 
 	if err != nil {
-
-		utils.ErrorLogWithFields(h.logger, c, "CreateMovieHandler", err)
+		utils.GinErrorLogWithFields(h.logger, c, "movies.handlers.CreateMovieHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -65,17 +63,18 @@ func (h *apiHandlers) ShowMovieHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "ShowMovie", err)
-
+		utils.GinErrorLogWithFields(h.logger, c, "movies.handlers.ShowMovie", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
+
 	ctx, cancle := context.WithTimeout(context.Background(), h.config.Server.CtxDefaultTimeout)
 	defer cancle()
 
 	movie, err := h.movieService.GetMovie(ctx, id)
+
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "ShowMovie", err)
+		utils.GinErrorLogWithFields(h.logger, c, "movies.handlers.ShowMovie.GetMovie", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -91,15 +90,15 @@ func (h *apiHandlers) ListMoviesHandler(c *gin.Context) {
 	err := c.ShouldBindQuery(&filter)
 
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "ListMoviesHandler", err)
+		utils.GinErrorLogWithFields(h.logger, c, "movies.handlers.ListMoviesHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
 
-	movies, err := h.movieService.ListMoviesHandler(c, &filter)
+	movies, err := h.movieService.ListMovies(c, &filter)
 
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "ListMoviesHandler", err)
+		utils.GinErrorLogWithFields(h.logger, c, "movies.handlers.ListMoviesHandler.movieService", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -112,29 +111,26 @@ func (h *apiHandlers) ListMoviesHandler(c *gin.Context) {
 func (h *apiHandlers) UpdateMovieHandler(c *gin.Context) {
 
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-
-	var movie model.Movie
-
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "UpdateMovie", err)
+		utils.GinErrorLogWithFields(h.logger, c, "movies.handlers.UpdateMovieHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
-
+	var movie model.Movie
 	if err := utils.ReadRequestJSON(c, &movie); err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "UpdateMovie", err)
+		utils.GinErrorLogWithFields(h.logger, c, "movies.handlers.UpdateMovieHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
-
 	movie.ID = id
-	_, cancle := context.WithTimeout(context.Background(), h.config.Server.CtxDefaultTimeout)
+
+	ctx, cancle := context.WithTimeout(context.Background(), h.config.Server.CtxDefaultTimeout)
 	defer cancle()
 
-	err = h.movieService.UpdateMovie(c.Request.Context(), &movie)
+	err = h.movieService.UpdateMovie(ctx, &movie)
 
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "UpdateMovie", err)
+		utils.GinErrorLogWithFields(h.logger, c, "movies.handlers.UpdateMovieHandler.UpdateMovie", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
@@ -143,16 +139,17 @@ func (h *apiHandlers) UpdateMovieHandler(c *gin.Context) {
 func (h *apiHandlers) DeleteMovieHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "DeleteMovie", err)
+		utils.GinErrorLogWithFields(h.logger, c, "movies.handlers.DeleteMovieHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
+
 	ctx, cancle := context.WithTimeout(context.Background(), h.config.Server.CtxDefaultTimeout)
 	defer cancle()
 
 	err = h.movieService.DeleteMovie(ctx, id)
 	if err != nil {
-		utils.ErrorLogWithFields(h.logger, c, "DeleteMovie", err)
+		utils.GinErrorLogWithFields(h.logger, c, "movies.handlers.DeleteMovieHandler.DeleteMovie", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
