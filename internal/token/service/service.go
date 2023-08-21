@@ -90,15 +90,21 @@ func (s *tokenService) ValidateActivationToken(ctx context.Context, u *model.Use
 	hashUserToken := utils.Hash(token)
 
 	if dbToken != hashUserToken {
-		return fmt.Errorf("token not valid ")
+		return httpError.NewUnAuthorizedError("token not valid ")
 	}
 	return nil
 }
 func (s *tokenService) DeleteActivationToken(ctx context.Context, u *model.User) error {
-	return s.tokenRepository.DeleteToken(ctx, u.ID, activationPrefix)
+	if err := s.tokenRepository.DeleteToken(ctx, u.ID, activationPrefix); err != nil {
+		return httpError.NewInternalServerError(err)
+	}
+	return nil
 }
-func (s *tokenService) Signout(ctx context.Context, uid int64) error {
-	return s.tokenRepository.DeleteToken(ctx, uid, refreshPrefix)
+func (s *tokenService) DeleteUserTokens(ctx context.Context, uid int64) error {
+	if err := s.tokenRepository.DeleteToken(ctx, uid, refreshPrefix); err != nil {
+		return httpError.NewInternalServerError(err)
+	}
+	return nil
 }
 func (s *tokenService) ValidateIDToken(tokenString string) (*utils.IDTokenClaims, error) {
 
