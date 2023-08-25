@@ -14,6 +14,9 @@ import (
 	moviesHttp "github.com/AbdulwahabNour/movies/internal/movies/delivery/http"
 	moviesRepo "github.com/AbdulwahabNour/movies/internal/movies/repository/postgres"
 	moviesService "github.com/AbdulwahabNour/movies/internal/movies/service"
+	permissionHttp "github.com/AbdulwahabNour/movies/internal/permissions/delivery/http"
+	permissionRepo "github.com/AbdulwahabNour/movies/internal/permissions/repository/postgres"
+	permissionService "github.com/AbdulwahabNour/movies/internal/permissions/service"
 	tokenHttp "github.com/AbdulwahabNour/movies/internal/token/delivery/http"
 	tokenRedisRepo "github.com/AbdulwahabNour/movies/internal/token/repository/redis"
 	tokenService "github.com/AbdulwahabNour/movies/internal/token/service"
@@ -52,7 +55,7 @@ func NewServer(config *config.Config, logger logger.Logger, db *sqlx.DB, redisDb
 	}
 }
 
-func (s *Server) MapHandler(g *gin.Engine) error {
+func (s *Server) MapHandler(g *gin.Engine, middleware *middlewares.MiddleWares) error {
 
 	tokeRepo := tokenRedisRepo.NewTokenRepo(s.RedisDB)
 	tokenServ := tokenService.NewTokenService(s.config, s.Logger, tokeRepo)
@@ -63,14 +66,19 @@ func (s *Server) MapHandler(g *gin.Engine) error {
 	userRepo := usersRepo.NewUserRepo(s.db)
 	userService := usersService.NewUserService(s.config, userRepo, tokenServ, s.Logger, s.validate)
 
+	permissionRepo := permissionRepo.NewPermissionRepo(s.db)
+	permissionServ := permissionService.NewPermissionService(s.config, permissionRepo, s.Logger, s.validate)
+
 	movieHandler := moviesHttp.NewMovieHandlers(s.config, movieService, s.Logger)
 	userHandler := usersHttp.NewMovieHandlers(s.config, userService, s.Logger)
 	tokenHandler := tokenHttp.NewTokenHandlers(s.config, tokenServ, userService, s.Logger)
-
+	permissionHandler := permissionHttp.NewPermissionsHandlers(s.config, permissionServ, s.Logger)
 	v1 := g.Group("/api/v1")
-	usersHttp.MapUsersRoutes(v1, userHandler)
-	moviesHttp.MapMoviesRoutes(v1, movieHandler)
-	tokenHttp.MapTokenRoutes(v1, tokenHandler)
+	v1.Use(middleware.Authenticate())
+	usersHttp.MapUsersRoutes(v1, userHandler, middleware)
+	moviesHttp.MapMoviesRoutes(v1, movieHandler, middleware)
+	tokenHttp.MapTokenRoutes(v1, tokenHandler, middleware)
+	permissionHttp.MapMoviesRoutes(v1, permissionHandler, middleware)
 
 	return nil
 
@@ -86,7 +94,7 @@ func (s *Server) Run() error {
 
 	s.ginEngin.Use(gin.Recovery())
 
-	err := s.MapHandler(s.ginEngin)
+	err := s.MapHandler(s.ginEngin, middleware)
 
 	if err != nil {
 		return err
