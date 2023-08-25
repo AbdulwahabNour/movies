@@ -68,10 +68,11 @@ func ValidateIDToken(tokenReq string, publicKey string) (*IDTokenClaims, error) 
 	if err != nil {
 		return nil, fmt.Errorf("validate: parse key: %w", err)
 	}
-	claims := IDTokenClaims{}
-	token, err := jwt.ParseWithClaims(tokenReq, &claims, func(token *jwt.Token) (interface{}, error) {
+	claims := &IDTokenClaims{}
+	token, err := jwt.ParseWithClaims(tokenReq, claims, func(token *jwt.Token) (interface{}, error) {
 		return key, nil
 	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -79,12 +80,12 @@ func ValidateIDToken(tokenReq string, publicKey string) (*IDTokenClaims, error) 
 	if !token.Valid {
 		return nil, fmt.Errorf("invalid ID token")
 	}
-	claims, ok := token.Claims.(IDTokenClaims)
+	claims, ok := token.Claims.(*IDTokenClaims)
 	if !ok {
 		return nil, fmt.Errorf("couldn't parse claims")
 	}
 
-	return &claims, nil
+	return claims, nil
 
 }
 
