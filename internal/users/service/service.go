@@ -60,7 +60,7 @@ func (s *userService) SigIn(ctx context.Context, userSignIn *model.SignIn) (*mod
 
 	user, err := s.GetUserByEmail(ctx, userSignIn.Email)
 	if err != nil {
-		return nil, httpError.NewUnAuthorizedError("wrong password email")
+		return nil, httpError.NewUnAuthorizedError("wrong email")
 	}
 
 	err = utils.VerifyPassword(user.HashedPassword, userSignIn.Password, s.config.Server.PepperSecreKey)

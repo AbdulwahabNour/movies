@@ -7,6 +7,8 @@ import (
 	"github.com/AbdulwahabNour/movies/internal/model/token"
 )
 
+var AnonymousUser = &User{}
+
 type User struct {
 	ID             int64     `json:"id"`
 	CreateAt       time.Time `json:"create_at" `
@@ -35,6 +37,9 @@ type UserWithToken struct {
 
 func (u *User) SanitizePassword() {
 	u.Password = ""
+}
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
 }
 
 func (u *SignUpInput) Check() error {
