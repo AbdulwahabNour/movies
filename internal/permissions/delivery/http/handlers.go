@@ -8,6 +8,7 @@ import (
 	"github.com/AbdulwahabNour/movies/config"
 	model "github.com/AbdulwahabNour/movies/internal/model/permission"
 	"github.com/AbdulwahabNour/movies/internal/permissions"
+
 	"github.com/AbdulwahabNour/movies/pkg/logger"
 	"github.com/AbdulwahabNour/movies/pkg/utils"
 	"github.com/gin-gonic/gin"
@@ -36,6 +37,7 @@ func (h *apiHandlers) AddPermissionHandler(c *gin.Context) {
 	}
 	ctx, cancle := context.WithTimeout(context.Background(), h.config.Server.CtxDefaultTimeout)
 	defer cancle()
+
 	err := h.permissionsService.AddPermission(ctx, &p)
 	if err != nil {
 		utils.GinErrorLogWithFields(h.logger, c, "permissions.handlers.AddPermissionHandler", err)
@@ -45,6 +47,7 @@ func (h *apiHandlers) AddPermissionHandler(c *gin.Context) {
 
 	utils.Response(c, http.StatusCreated, p)
 }
+
 func (h *apiHandlers) GetPermissioHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -115,7 +118,7 @@ func (h *apiHandlers) GetUserPermissionsHandler(c *gin.Context) {
 
 	permissions, err := h.permissionsService.GetUserPermissions(ctx, id)
 	if err != nil {
-		utils.GinErrorLogWithFields(h.logger, c, "permissions.handlers.DeletePermissionHandler", err)
+		utils.GinErrorLogWithFields(h.logger, c, "permissions.handlers.GetUserPermissionsHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
