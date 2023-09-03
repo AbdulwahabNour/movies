@@ -28,12 +28,6 @@ func NewMovieHandlers(app *config.Config, serv movies.Service, logger logger.Log
 	}
 }
 
-func (h *apiHandlers) HealthCheckHandler(c *gin.Context) {
-
-	c.IndentedJSON(http.StatusOK, gin.H{"status": "available", "enviroment": h.config.Server.Mode, "version": h.config.Server.AppVersion})
-
-}
-
 func (h *apiHandlers) CreateMovieHandler(c *gin.Context) {
 
 	var movie model.Movie
@@ -109,7 +103,6 @@ func (h *apiHandlers) ListMoviesHandler(c *gin.Context) {
 
 }
 func (h *apiHandlers) UpdateMovieHandler(c *gin.Context) {
-
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		utils.GinErrorLogWithFields(h.logger, c, "movies.handlers.UpdateMovieHandler", err)
@@ -153,6 +146,5 @@ func (h *apiHandlers) DeleteMovieHandler(c *gin.Context) {
 		utils.ErrorResponse(c, err)
 		return
 	}
-
 	utils.Response(c, http.StatusOK, gin.H{"status": "deleted"})
 }

@@ -8,8 +8,6 @@ import (
 
 func MapMoviesRoutes(r *gin.RouterGroup, app movies.Handler, mw *middlewares.MiddleWares) {
 
-	r.GET("/healthcheck", app.HealthCheckHandler)
-
 	r.GET("/movies", app.ListMoviesHandler)
 	r.GET("/movies/:id", app.ShowMovieHandler)
 
