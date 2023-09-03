@@ -82,8 +82,8 @@ type MovieSearchQuery struct {
 }
 
 type Filters struct {
-	Page         int    `form:"page"      json:"page" validate:"required,gte=1,lte=1000000"`
-	PageSize     int    `form:"page_size" json:"page_size" validate:"required,gte=1,lte=100"`
+	Page         int    `form:"page"  binding:"required"    json:"page" validate:"required,gte=1,lte=1000000"`
+	PageSize     int    `form:"page_size" binding:"required" json:"page_size" validate:"required,gte=1,lte=100"`
 	Sort         string `form:"sort"      json:"sort" validate:"oneof=id title year runtime -id -title -year -runtime"`
 	TotalRecords int    `form:"-"  json:"-"`
 }

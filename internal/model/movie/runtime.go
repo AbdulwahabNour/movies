@@ -11,7 +11,7 @@ type Runtime int32
 
 var ErrInvalidRuntimeFormat = errors.New("invalid runtime format")
 
-func (r *Runtime) MarshalJSON() ([]byte, error) {
+func (r Runtime) MarshalJSON() ([]byte, error) {
 
 	jsonVal := fmt.Sprintf("%d mins", r)
 	quotedJsonVal := strconv.Quote(jsonVal)
