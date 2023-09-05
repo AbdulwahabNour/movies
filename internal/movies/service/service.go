@@ -30,11 +30,13 @@ func NewMovieService(config *config.Config, repo movies.Repository, logger logge
 
 func (s *movieService) CreateMovie(ctx context.Context, movie *model.Movie) error {
 
-	if err := s.checkMovie(movie); err != nil {
-		return httpError.NewUnprocessableEntityError(err)
+	if err := checkMovie(movie); err != nil {
+		return err
 	}
+
 	err := s.repo.CreateMovie(ctx, movie)
 	if err != nil {
+
 		s.logger.ErrorLogWithFields(logrus.Fields{"method": "movies.service.CreateMovie", "query": *movie}, err)
 		return httpError.NewInternalServerError("error happen during create movie try again later")
 	}
@@ -77,7 +79,7 @@ func (s *movieService) UpdateMovie(ctx context.Context, movie *model.Movie) erro
 
 	getMovie.PrepareForUpdate(movie)
 
-	if err := s.checkMovie(getMovie); err != nil {
+	if err := checkMovie(getMovie); err != nil {
 		return err
 	}
 
@@ -96,13 +98,14 @@ func (s *movieService) DeleteMovie(ctx context.Context, id int64) error {
 	}
 	return nil
 }
-func (s *movieService) checkMovie(movie *model.Movie) error {
+func checkMovie(movie *model.Movie) error {
+	validator := validator.New()
 	validate := movie.ValidateMovie()
 	if movie.ID < 0 {
 		return httpError.NewBadRequestError("movie id less than 0")
 	} else if len(validate) != 0 {
 		return httpError.NewUnprocessableEntityError(validate)
-	} else if err := s.validate.Struct(movie); err != nil {
+	} else if err := validator.Struct(movie); err != nil {
 		return httpError.ParseValidationErrors(err)
 	}
 	return nil
