@@ -1,9 +1,11 @@
 package middlewares
 
 import (
+	"context"
 	"net/http"
 
-	model "github.com/AbdulwahabNour/movies/internal/model/users"
+	permissionModel "github.com/AbdulwahabNour/movies/internal/model/permission"
+	Usermodel "github.com/AbdulwahabNour/movies/internal/model/users"
 	"github.com/AbdulwahabNour/movies/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -19,14 +21,14 @@ func (m *MiddleWares) Authenticate() gin.HandlerFunc {
 		h := AuthHeader{}
 
 		if err := c.ShouldBindHeader(&h); err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			c.Abort()
 			return
 		}
 
 		idToken, err := utils.GetBearerToken(c.Request)
 		if err != nil {
-			c.Set("user", model.AnonymousUser)
+			c.Set("user", Usermodel.AnonymousUser)
 			c.Next()
 			return
 		}
@@ -39,7 +41,7 @@ func (m *MiddleWares) Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user", &model.User{
+		c.Set("user", &Usermodel.User{
 			ID:    claims.ID,
 			Name:  claims.Name,
 			Email: claims.Email,
@@ -50,14 +52,53 @@ func (m *MiddleWares) Authenticate() gin.HandlerFunc {
 
 func (m *MiddleWares) RequiredAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		users, found := c.Get("user")
-		user, ok := users.(*model.User)
-		if !found || !ok || user.IsAnonymous() {
+
+		user, err := utils.ContextGetUser(c)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			c.Abort()
+			return
+		}
+
+		if user.IsAnonymous() {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			c.Abort()
 			return
 		}
 
+		c.Next()
+	}
+}
+func (m *MiddleWares) RequirePermission(code string) gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+
+		user, err := utils.ContextGetUser(c)
+		if err != nil || user.IsAnonymous() {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.Abort()
+			return
+		}
+
+		ctx, cancle := context.WithTimeout(context.Background(), m.config.Server.CtxDefaultTimeout)
+		defer cancle()
+
+		permissions, err := m.permissionServ.GetUserPermissions(ctx, user.ID)
+		if err != nil {
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				c.Abort()
+				return
+			}
+		}
+
+		if !permissionModel.HasCode(permissions, code) {
+
+			c.JSON(http.StatusForbidden, gin.H{"error": "your user account doesn't have permissions to access this resource"})
+			c.Abort()
+			return
+
+		}
 		c.Next()
 	}
 }
