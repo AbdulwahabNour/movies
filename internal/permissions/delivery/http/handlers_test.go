@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	model "github.com/AbdulwahabNour/movies/internal/model/permission"
@@ -17,18 +18,55 @@ func TestAddPermissionHandler(t *testing.T) {
 	router, handlers, mockService := setupTest()
 	router.POST("/permissions", handlers.AddPermissionHandler)
 
-	mockService.On("AddPermission", mock.Anything, &model.Permission{
-		Code: "test",
-	}).
-		Return(nil)
+	testCases := []struct {
+		description        string
+		mocking            bool
+		userPermissions    *model.Permission
+		payload            []byte
+		returnArguments    error
+		expectedStatusCode int
+	}{
+		{
+			description:        "Invalid payload",
+			mocking:            false,
+			userPermissions:    nil,
+			payload:            nil,
+			returnArguments:    nil,
+			expectedStatusCode: http.StatusBadRequest,
+		},
 
-	w := httptest.NewRecorder()
-	payload := []byte(`{"code":"test"}`)
-	req, _ := http.NewRequest("POST", "/permissions", bytes.NewBuffer(payload))
+		{
+			description:        "AddPermission  error",
+			mocking:            true,
+			userPermissions:    &model.Permission{Code: "test"},
+			payload:            []byte(`{"code":"test"}`),
+			returnArguments:    fmt.Errorf("something went wrong"),
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+		{
+			description:        "success AddPermission",
+			mocking:            true,
+			userPermissions:    &model.Permission{Code: "add:movie"},
+			payload:            []byte(`{"code":"add:movie"}`),
+			returnArguments:    nil,
+			expectedStatusCode: http.StatusCreated,
+		},
+	}
 
-	router.ServeHTTP(w, req)
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			if tc.mocking {
+				mockService.On("AddPermission", mock.Anything, tc.userPermissions).
+					Return(tc.returnArguments)
+			}
+			w := httptest.NewRecorder()
 
-	assert.Equal(t, http.StatusCreated, w.Code)
+			req, _ := http.NewRequest("POST", "/permissions", bytes.NewBuffer(tc.payload))
+
+			router.ServeHTTP(w, req)
+			assert.Equal(t, tc.expectedStatusCode, w.Code)
+		})
+	}
 
 	mockService.AssertExpectations(t)
 }
@@ -38,73 +76,133 @@ func TestGetPermissioHandler(t *testing.T) {
 	router, handlers, mockService := setupTest()
 	router.GET("/:id", handlers.GetPermissioHandler)
 
-	t.Run("Successful Get Permission", func(t *testing.T) {
+	testCases := []struct {
+		description        string
+		mocking            bool
+		query              string
+		returnArguments    []interface{}
+		expectedStatusCode int
+	}{
+		{
+			description:        "Invalid id",
+			mocking:            false,
+			query:              "test",
+			returnArguments:    nil,
+			expectedStatusCode: http.StatusUnprocessableEntity,
+		},
 
-		mockService.On("GetPermission", mock.Anything, int64(11)).
-			Return(&model.Permission{}, nil)
+		{
+			description: "GetPermission error",
+			mocking:     true,
+			query:       "10",
+			returnArguments: []interface{}{
+				&model.Permission{},
+				fmt.Errorf("something went wrong"),
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+		{
+			description: "success GetPermission",
+			mocking:     true,
+			query:       "11",
+			returnArguments: []interface{}{
+				&model.Permission{},
+				nil,
+			},
+			expectedStatusCode: http.StatusOK,
+		},
+	}
 
-		w := httptest.NewRecorder()
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			if tc.mocking {
+				pid, _ := strconv.ParseInt(tc.query, 10, 64)
+				mockService.On("GetPermission", mock.Anything, pid).Return(tc.returnArguments...)
+			}
 
-		req, _ := http.NewRequest("GET", "/11", nil)
+			w := httptest.NewRecorder()
 
-		router.ServeHTTP(w, req)
+			req, _ := http.NewRequest("GET", fmt.Sprintf("/%s", tc.query), nil)
 
-		assert.Equal(t, http.StatusOK, w.Code)
+			router.ServeHTTP(w, req)
 
-		mockService.AssertExpectations(t)
+			assert.Equal(t, tc.expectedStatusCode, w.Code)
 
-	})
-
-	t.Run("Not fount Get prtmission", func(t *testing.T) {
-		mockService.On("GetPermission", mock.Anything, int64(12)).
-			Return(nil, fmt.Errorf("id not found"))
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/12", nil)
-		router.ServeHTTP(w, req)
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-		mockService.AssertExpectations(t)
-	})
+		})
+	}
+	mockService.AssertExpectations(t)
 
 }
 
 func TestUpdatePermission(t *testing.T) {
 
 	router, handlers, mockService := setupTest()
-	router.PUT("/", handlers.UpdatePermissionHandler)
+	router.PUT("/:id", handlers.UpdatePermissionHandler)
 
-	t.Run("Successful Update Permission", func(t *testing.T) {
+	testCases := []struct {
+		description        string
+		mocking            bool
+		query              string
+		payload            []byte
+		permission         *model.Permission
+		returnArgument     error
+		expectedStatusCode int
+	}{
+		{
+			description:        "Invalid id",
+			mocking:            false,
+			query:              "test",
+			payload:            nil,
+			permission:         nil,
+			returnArgument:     nil,
+			expectedStatusCode: http.StatusUnprocessableEntity,
+		},
+		{
+			description:        "Invalid payload",
+			mocking:            false,
+			query:              "10",
+			payload:            nil,
+			permission:         nil,
+			returnArgument:     nil,
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			description:        "UpdatePermission error",
+			mocking:            true,
+			query:              "10",
+			payload:            []byte(`{"code":"addmovie"}`),
+			permission:         &model.Permission{ID: 10, Code: "addmovie"},
+			returnArgument:     fmt.Errorf("something went wrong"),
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+		{
+			description:        "Success UpdatePermission ",
+			mocking:            true,
+			query:              "1",
+			payload:            []byte(`{"code":"delete:movie"}`),
+			permission:         &model.Permission{ID: 1, Code: "delete:movie"},
+			returnArgument:     nil,
+			expectedStatusCode: http.StatusOK,
+		},
+	}
 
-		mockService.On("UpdatePermission", mock.Anything, &model.Permission{ID: 12, Code: "test"}).
-			Return(nil)
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			if tc.mocking {
+				mockService.On("UpdatePermission", mock.Anything, tc.permission).Return(tc.returnArgument)
+			}
 
-		w := httptest.NewRecorder()
-		payload := []byte(`{
-			"id":12,
-			"code":"test"
-		}`)
-		req, _ := http.NewRequest("PUT", "/", bytes.NewBuffer(payload))
+			w := httptest.NewRecorder()
 
-		router.ServeHTTP(w, req)
+			req, _ := http.NewRequest("PUT", fmt.Sprintf("/%s", tc.query), bytes.NewBuffer(tc.payload))
 
-		assert.Equal(t, http.StatusOK, w.Code)
+			router.ServeHTTP(w, req)
 
-		mockService.AssertExpectations(t)
+			assert.Equal(t, tc.expectedStatusCode, w.Code)
 
-	})
-
-	t.Run("Not fount Update prtmission", func(t *testing.T) {
-		mockService.On("UpdatePermission", mock.Anything, &model.Permission{ID: 100, Code: "test"}).
-			Return(fmt.Errorf("not found"))
-		w := httptest.NewRecorder()
-		payload := []byte(`{
-			"id":100,
-			"code":"test"
-		}`)
-		req, _ := http.NewRequest("PUT", "/", bytes.NewBuffer(payload))
-		router.ServeHTTP(w, req)
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-		mockService.AssertExpectations(t)
-	})
+		})
+	}
+	mockService.AssertExpectations(t)
 
 }
 
@@ -112,111 +210,256 @@ func TestDeletePermissionHandler(t *testing.T) {
 	router, handlers, mockService := setupTest()
 	router.DELETE("/:id", handlers.DeletePermissionHandler)
 
-	t.Run("Successful Delete Permission", func(t *testing.T) {
+	testCases := []struct {
+		description        string
+		mocking            bool
+		query              string
+		returnArgument     error
+		expectedStatusCode int
+	}{
+		{
+			description:        "Invalid id",
+			mocking:            false,
+			query:              "test",
+			returnArgument:     nil,
+			expectedStatusCode: http.StatusUnprocessableEntity,
+		},
 
-		mockService.On("DeletePermission", mock.Anything, int64(11)).
-			Return(nil)
+		{
+			description:        "DeletePermission error",
+			mocking:            true,
+			query:              "10",
+			returnArgument:     fmt.Errorf("something went wrong"),
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+		{
+			description:        "success DeletePermission",
+			mocking:            true,
+			query:              "1",
+			returnArgument:     nil,
+			expectedStatusCode: http.StatusOK,
+		},
+	}
 
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("DELETE", "/11", nil)
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			if tc.mocking {
+				pid, _ := strconv.ParseInt(tc.query, 10, 64)
+				mockService.On("DeletePermission", mock.Anything, pid).Return(tc.returnArgument)
+			}
 
-		router.ServeHTTP(w, req)
+			w := httptest.NewRecorder()
 
-		assert.Equal(t, http.StatusOK, w.Code)
+			req, _ := http.NewRequest("DELETE", fmt.Sprintf("/%s", tc.query), nil)
 
-		mockService.AssertExpectations(t)
-	})
+			router.ServeHTTP(w, req)
 
-	t.Run("Not found Delete permission", func(t *testing.T) {
-		mockService.On("DeletePermission", mock.Anything, int64(12)).
-			Return(fmt.Errorf("not found"))
+			assert.Equal(t, tc.expectedStatusCode, w.Code)
 
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("DELETE", "/12", nil)
-
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-
-		mockService.AssertExpectations(t)
-	})
-
+		})
+	}
+	mockService.AssertExpectations(t)
 }
 
 func TestGetUserPermissionsHandler(t *testing.T) {
 	router, handlers, mockService := setupTest()
 	router.GET("/user/:id", handlers.GetUserPermissionsHandler)
 
-	t.Run("Successful Get User Permissions", func(t *testing.T) {
+	testCases := []struct {
+		description        string
+		mocking            bool
+		query              string
+		returnArguments    []interface{}
+		expectedStatusCode int
+	}{
+		{
+			description:        "Invalid id",
+			mocking:            false,
+			query:              "test",
+			returnArguments:    nil,
+			expectedStatusCode: http.StatusUnprocessableEntity,
+		},
 
-		mockService.On("GetUserPermissions", mock.Anything, int64(10)).
-			Return([]*model.Permission{}, nil)
+		{
+			description: "GetUserPermissions error",
+			mocking:     true,
+			query:       "10",
+			returnArguments: []interface{}{
+				[]*model.Permission{},
+				fmt.Errorf("something went wrong"),
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+		{
+			description: "Success GetUserPermissions",
+			mocking:     true,
+			query:       "8",
+			returnArguments: []interface{}{
+				[]*model.Permission{},
+				nil,
+			},
+			expectedStatusCode: http.StatusOK,
+		},
+	}
 
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/user/10", nil)
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			if tc.mocking {
+				pid, _ := strconv.ParseInt(tc.query, 10, 64)
+				mockService.On("GetUserPermissions", mock.Anything, pid).Return(tc.returnArguments...)
+			}
 
-		router.ServeHTTP(w, req)
+			w := httptest.NewRecorder()
 
-		assert.Equal(t, http.StatusOK, w.Code)
+			req, _ := http.NewRequest("GET", fmt.Sprintf("/user/%s", tc.query), nil)
 
-		mockService.AssertExpectations(t)
-	})
+			router.ServeHTTP(w, req)
 
-	t.Run("User Permissions not found", func(t *testing.T) {
-		mockService.On("GetUserPermissions", mock.Anything, int64(11)).
-			Return(nil, fmt.Errorf("user permissions not found"))
+			assert.Equal(t, tc.expectedStatusCode, w.Code)
 
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/user/11", nil)
-
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-
-		mockService.AssertExpectations(t)
-	})
-
+		})
+	}
+	mockService.AssertExpectations(t)
 }
 
 func TestSetUserPermissionHandler(t *testing.T) {
 	router, handlers, mockService := setupTest()
-	router.POST("/user/", handlers.SetUserPermissionHandler)
+	router.POST("/user/:id", handlers.SetUserPermissionHandler)
 
-	t.Run("Successful Set User Permission", func(t *testing.T) {
-		mockService.On("SetUserPermission", mock.Anything, &model.UserPermission{UserId: 10, PermissionId: 1}).
-			Return(nil)
-		w := httptest.NewRecorder()
+	testCases := []struct {
+		description        string
+		mocking            bool
+		query              string
+		userPermissions    []string
+		payload            []byte
+		returnArgument     error
+		expectedStatusCode int
+	}{
+		{
+			description:        "Invalid id",
+			mocking:            false,
+			query:              "test",
+			userPermissions:    nil,
+			payload:            nil,
+			returnArgument:     nil,
+			expectedStatusCode: http.StatusUnprocessableEntity,
+		},
+		{
+			description:        "Invalid payload",
+			mocking:            false,
+			query:              "11",
+			userPermissions:    nil,
+			payload:            nil,
+			returnArgument:     nil,
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			description:        "SetUserPermissions  error",
+			mocking:            true,
+			query:              "11",
+			userPermissions:    []string{"addmovie", "deletemovie"},
+			payload:            []byte(`{"permissions":["addmovie","deletemovie" ]}`),
+			returnArgument:     fmt.Errorf("something went wrong"),
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+		{
+			description:        "success  SetUserPermissions",
+			mocking:            true,
+			query:              "12",
+			userPermissions:    []string{"update:user", "add:user"},
+			payload:            []byte(`{"permissions":["update:user","add:user" ]}`),
+			returnArgument:     nil,
+			expectedStatusCode: http.StatusOK,
+		},
+	}
 
-		payload := []byte(`{"user_id":10,"permission_id":1}`)
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			if tc.mocking {
+				userId, _ := strconv.ParseInt(tc.query, 10, 64)
+				mockService.On("SetUserPermissions", mock.Anything, userId, tc.userPermissions).Return(tc.returnArgument)
+			}
 
-		req, _ := http.NewRequest("POST", "/user/", bytes.NewBuffer(payload))
+			w := httptest.NewRecorder()
 
-		router.ServeHTTP(w, req)
+			req, _ := http.NewRequest("POST", fmt.Sprintf("/user/%s", tc.query), bytes.NewBuffer(tc.payload))
 
-		assert.Equal(t, http.StatusOK, w.Code)
+			router.ServeHTTP(w, req)
 
-	})
+			assert.Equal(t, tc.expectedStatusCode, w.Code)
 
+		})
+	}
+	mockService.AssertExpectations(t)
 }
 
 func TestDeleteUserPermissionHandler(t *testing.T) {
 	router, handlers, mockService := setupTest()
-	router.DELETE("/user/", handlers.DeleteUserPermissionHandler)
+	router.DELETE("/user/:id", handlers.DeleteUserPermissionHandler)
+	testCases := []struct {
+		description        string
+		mocking            bool
+		query              string
+		userPermissions    []string
+		payload            []byte
+		returnArgument     error
+		expectedStatusCode int
+	}{
+		{
+			description:        "Invalid id",
+			mocking:            false,
+			query:              "test",
+			userPermissions:    nil,
+			payload:            nil,
+			returnArgument:     nil,
+			expectedStatusCode: http.StatusUnprocessableEntity,
+		},
+		{
+			description:        "Invalid payload",
+			mocking:            false,
+			query:              "10",
+			userPermissions:    nil,
+			payload:            nil,
+			returnArgument:     nil,
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			description:        "DeleteUserPermission  error",
+			mocking:            true,
+			query:              "11",
+			userPermissions:    []string{"updatemovie", "deletemovie"},
+			payload:            []byte(`{"permissions":["updatemovie","deletemovie" ]}`),
+			returnArgument:     fmt.Errorf("something went wrong"),
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+		{
+			description:        "success  DeleteUserPermission",
+			mocking:            true,
+			query:              "4",
+			userPermissions:    []string{"update:user", "add:user"},
+			payload:            []byte(`{"permissions":["update:user","add:user" ]}`),
+			returnArgument:     nil,
+			expectedStatusCode: http.StatusOK,
+		},
+	}
 
-	t.Run("Successful Delete User Permission", func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			if tc.mocking {
+				userId, _ := strconv.ParseInt(tc.query, 10, 64)
+				mockService.On("DeleteUserPermission", mock.Anything, userId, tc.userPermissions).Return(tc.returnArgument)
+			}
 
-		mockService.On("DeleteUserPermission", mock.Anything, &model.UserPermission{UserId: 10, PermissionId: 5}).
-			Return(nil)
-		payload := []byte(`{"user_id":10,"permission_id":5}`)
+			w := httptest.NewRecorder()
 
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("DELETE", "/user/", bytes.NewBuffer(payload))
+			req, _ := http.NewRequest("DELETE", fmt.Sprintf("/user/%s", tc.query), bytes.NewBuffer(tc.payload))
 
-		router.ServeHTTP(w, req)
+			router.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusOK, w.Code)
+			assert.Equal(t, tc.expectedStatusCode, w.Code)
 
-		mockService.AssertExpectations(t)
-	})
+		})
+	}
+	mockService.AssertExpectations(t)
 
 }
