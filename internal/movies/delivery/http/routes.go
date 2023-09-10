@@ -11,8 +11,8 @@ func MapMoviesRoutes(r *gin.RouterGroup, app movies.Handler, mw *middlewares.Mid
 	r.GET("/movies", app.ListMoviesHandler)
 	r.GET("/movies/:id", app.ShowMovieHandler)
 
-	r.POST("/movies", app.CreateMovieHandler)
-	r.PUT("/movies/:id", app.UpdateMovieHandler)
-	r.DELETE("/movies/:id", app.DeleteMovieHandler)
+	r.POST("/movies", mw.RequirePermission("movie:add"), app.CreateMovieHandler)
+	r.PUT("/movies/:id", mw.RequirePermission("movie:update"), app.UpdateMovieHandler)
+	r.DELETE("/movies/:id", mw.RequirePermission("movie:delete"), app.DeleteMovieHandler)
 
 }
