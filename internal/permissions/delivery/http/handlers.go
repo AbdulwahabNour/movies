@@ -67,6 +67,13 @@ func (h *apiHandlers) GetPermissioHandler(c *gin.Context) {
 }
 func (h *apiHandlers) UpdatePermissionHandler(c *gin.Context) {
 
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.GinErrorLogWithFields(h.logger, c, "permissions.handlers.UpdatePermissionHandler", err)
+		utils.ErrorResponse(c, err)
+		return
+	}
+
 	var p model.Permission
 	if err := utils.ReadRequestJSON(c, &p); err != nil {
 		utils.GinErrorLogWithFields(h.logger, c, "permissions.handlers.UpdatePermissionHandler", err)
@@ -75,8 +82,8 @@ func (h *apiHandlers) UpdatePermissionHandler(c *gin.Context) {
 	}
 	ctx, cancle := context.WithTimeout(context.Background(), h.config.Server.CtxDefaultTimeout)
 	defer cancle()
-
-	err := h.permissionsService.UpdatePermission(ctx, &p)
+	p.ID = id
+	err = h.permissionsService.UpdatePermission(ctx, &p)
 	if err != nil {
 		utils.GinErrorLogWithFields(h.logger, c, "permissions.handlers.UpdatePermissionHandler", err)
 		utils.ErrorResponse(c, err)
@@ -125,7 +132,18 @@ func (h *apiHandlers) GetUserPermissionsHandler(c *gin.Context) {
 	utils.Response(c, http.StatusOK, gin.H{"permissions": permissions})
 }
 func (h *apiHandlers) SetUserPermissionHandler(c *gin.Context) {
-	var p model.UserPermission
+	userId, err := strconv.ParseInt(c.Param("id"), 10, 64)
+
+	if err != nil {
+		utils.GinErrorLogWithFields(h.logger, c, "permissions.handlers.SetUserPermissionHandler", err)
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	p := struct {
+		Permissions []string `json:"permissions" `
+	}{}
+
 	if err := utils.ReadRequestJSON(c, &p); err != nil {
 		utils.GinErrorLogWithFields(h.logger, c, "permissions.handlers.SetUserPermissionHandler", err)
 		utils.ErrorResponse(c, err)
@@ -133,7 +151,8 @@ func (h *apiHandlers) SetUserPermissionHandler(c *gin.Context) {
 	}
 	ctx, cancle := context.WithTimeout(context.Background(), h.config.Server.CtxDefaultTimeout)
 	defer cancle()
-	err := h.permissionsService.SetUserPermission(ctx, &p)
+
+	err = h.permissionsService.SetUserPermissions(ctx, userId, p.Permissions...)
 	if err != nil {
 		utils.GinErrorLogWithFields(h.logger, c, "permissions.handlers.SetUserPermissionHandler", err)
 		utils.ErrorResponse(c, err)
@@ -144,7 +163,17 @@ func (h *apiHandlers) SetUserPermissionHandler(c *gin.Context) {
 
 func (h *apiHandlers) DeleteUserPermissionHandler(c *gin.Context) {
 
-	var p model.UserPermission
+	userId, err := strconv.ParseInt(c.Param("id"), 10, 64)
+
+	if err != nil {
+		utils.GinErrorLogWithFields(h.logger, c, "permissions.handlers.DeleteUserPermissionHandler", err)
+		utils.ErrorResponse(c, err)
+		return
+	}
+
+	p := struct {
+		Permissions []string `json:"permissions" `
+	}{}
 
 	if err := utils.ReadRequestJSON(c, &p); err != nil {
 		utils.GinErrorLogWithFields(h.logger, c, "permissions.handlers.DeleteUserPermissionHandler", err)
@@ -155,9 +184,9 @@ func (h *apiHandlers) DeleteUserPermissionHandler(c *gin.Context) {
 	ctx, cancle := context.WithTimeout(context.Background(), h.config.Server.CtxDefaultTimeout)
 	defer cancle()
 
-	err := h.permissionsService.DeleteUserPermission(ctx, &p)
+	err = h.permissionsService.DeleteUserPermission(ctx, userId, p.Permissions...)
 	if err != nil {
-		utils.GinErrorLogWithFields(h.logger, c, "permissions.handlers.SetUserPermissionHandler", err)
+		utils.GinErrorLogWithFields(h.logger, c, "permissions.handlers.DeleteUserPermissionHandler", err)
 		utils.ErrorResponse(c, err)
 		return
 	}
