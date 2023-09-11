@@ -101,9 +101,11 @@ func (r *permissionRepo) UserPermissions(ctx context.Context, userId int64) ([]*
 	}
 	return perm, nil
 }
-func (r *permissionRepo) AddUserPermission(ctx context.Context, userpermission *model.UserPermission) error {
-	query := `INSERT INTO users_permissions (user_id, permission_id) VALUES ($1,$2)`
-	_, err := r.db.ExecContext(ctx, query, userpermission.UserId, userpermission.PermissionId)
+
+func (r *permissionRepo) AddUserPermissions(ctx context.Context, userId int64, codes ...string) error {
+
+	query := `INSERT INTO users_permissions SELECT $1, permissions.id FROM permissions WHERE permissions.code=ANY($2)`
+	_, err := r.db.ExecContext(ctx, query, userId, pq.Array(codes))
 	if err != nil {
 		pqErr, ispGerr := err.(*pq.Error)
 		if ispGerr {
@@ -116,11 +118,18 @@ func (r *permissionRepo) AddUserPermission(ctx context.Context, userpermission *
 	return nil
 }
 
-func (r *permissionRepo) DeleteUserPermission(ctx context.Context, userpermission *model.UserPermission) error {
-	query := `DELETE FROM users_permissions WHERE user_id=$1 AND permission_id=$2`
-	_, err := r.db.ExecContext(ctx, query, userpermission.UserId, userpermission.PermissionId)
+func (r *permissionRepo) DeleteUserPermission(ctx context.Context, userId int64, codes ...string) error {
+	query := `DELETE 
+	FROM users_permissions 
+	WHERE 
+	user_id = $1 and permission_id 
+	IN(SELECT permissions.id FROM permissions WHERE permissions.code=ANY($2))
+	`
+
+	_, err := r.db.ExecContext(ctx, query, userId, pq.Array(codes))
 	if err != nil {
 		return fmt.Errorf("failed to delete user permission: %w", err)
 	}
+
 	return nil
 }
