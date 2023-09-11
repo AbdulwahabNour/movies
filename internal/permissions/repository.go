@@ -16,6 +16,6 @@ type Repository interface {
 
 type UserPermissionsRepo interface {
 	UserPermissions(ctx context.Context, userId int64) ([]*model.Permission, error)
-	AddUserPermission(ctx context.Context, userpermission *model.UserPermission) error
-	DeleteUserPermission(ctx context.Context, userpermission *model.UserPermission) error
+	AddUserPermissions(ctx context.Context, userId int64, codes ...string) error
+	DeleteUserPermission(ctx context.Context, userId int64, codes ...string) error
 }
