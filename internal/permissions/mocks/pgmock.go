@@ -35,12 +35,12 @@ func (m *MockRepository) UserPermissions(ctx context.Context, userId int64) ([]*
 	return args.Get(0).([]*model.Permission), args.Error(1)
 }
 
-func (m *MockRepository) AddUserPermission(ctx context.Context, userpermission *model.UserPermission) error {
-	args := m.Called(ctx, userpermission)
+func (m *MockRepository) AddUserPermissions(ctx context.Context, userId int64, codes ...string) error {
+	args := m.Called(ctx, userId, codes)
 	return args.Error(0)
 }
 
-func (m *MockRepository) DeleteUserPermission(ctx context.Context, userpermission *model.UserPermission) error {
-	args := m.Called(ctx, userpermission)
+func (m *MockRepository) DeleteUserPermission(ctx context.Context, userId int64, codes ...string) error {
+	args := m.Called(ctx, userId, codes)
 	return args.Error(0)
 }

@@ -37,12 +37,11 @@ func (m *MockService) GetUserPermissions(ctx context.Context, userId int64) ([]*
 	return args.Get(0).([]*model.Permission), args.Error(1)
 }
 
-func (m *MockService) SetUserPermission(ctx context.Context, userpermission *model.UserPermission) error {
-	args := m.Called(ctx, userpermission)
+func (m *MockService) SetUserPermissions(ctx context.Context, userId int64, permissions ...string) error {
+	args := m.Called(ctx, userId, permissions)
 	return args.Error(0)
 }
-
-func (m *MockService) DeleteUserPermission(ctx context.Context, userpermission *model.UserPermission) error {
-	args := m.Called(ctx, userpermission)
+func (m *MockService) DeleteUserPermission(ctx context.Context, userId int64, permissions ...string) error {
+	args := m.Called(ctx, userId, permissions)
 	return args.Error(0)
 }
