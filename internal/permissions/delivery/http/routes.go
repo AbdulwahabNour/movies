@@ -10,12 +10,12 @@ func MapMoviesRoutes(r *gin.RouterGroup, app permissions.Handler, mw *middleware
 
 	g := r.Group("/permission/")
 
-	g.POST("/", app.AddPermissionHandler)  //done
-	g.GET("/:id", app.GetPermissioHandler) //done
-	g.PUT("/", mw.RequiredAuth(), app.UpdatePermissionHandler)
-	g.DELETE("/:id", mw.RequiredAuth(), app.DeletePermissionHandler)
-	g.GET("/user/:id", app.GetUserPermissionsHandler)
-	g.POST("/user/", app.SetUserPermissionHandler)
-	g.DELETE("/user/", mw.RequiredAuth(), app.DeleteUserPermissionHandler)
+	g.POST("/", mw.RequirePermission("add:permission"), app.AddPermissionHandler)
+	g.GET("/:id", mw.RequirePermission("view:permission"), app.GetPermissioHandler)
+	g.PUT("/:id", mw.RequirePermission("update:permission"), app.UpdatePermissionHandler)
+	g.DELETE("/:id", mw.RequirePermission("delete:permission"), app.DeletePermissionHandler)
+	g.GET("/user/:id", mw.RequirePermission("view:userpermission"), app.GetUserPermissionsHandler)
+	g.POST("/user/:id", mw.RequirePermission("add:userpermission"), app.SetUserPermissionHandler)
+	g.DELETE("/user/:id", mw.RequirePermission("delete:userpermission"), app.DeleteUserPermissionHandler)
 
 }
