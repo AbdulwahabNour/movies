@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"regexp"
 
 	"github.com/AbdulwahabNour/movies/config"
 	model "github.com/AbdulwahabNour/movies/internal/model/permission"
@@ -73,29 +74,51 @@ func (s *permissionService) GetUserPermissions(ctx context.Context, userId int64
 	return userPermissions, nil
 
 }
-func (s *permissionService) SetUserPermission(ctx context.Context, userpermission *model.UserPermission) error {
 
-	if err := s.validate.Struct(userpermission); err != nil {
-		return httpError.ParseValidationErrors(err)
+func (s *permissionService) SetUserPermissions(ctx context.Context, userId int64, permissions ...string) error {
+
+	if !isValidPermissions(permissions...) {
+		return httpError.NewBadRequestError("invalid permission format")
+	}
+	if userId < 1 {
+		return httpError.NewBadRequestError("user id less than 1")
 	}
 
-	err := s.repo.AddUserPermission(ctx, userpermission)
+	err := s.repo.AddUserPermissions(ctx, userId, permissions...)
+
 	if err != nil {
 		return httpError.ParseErrors(err)
 	}
 
 	return nil
 }
-func (s *permissionService) DeleteUserPermission(ctx context.Context, userpermission *model.UserPermission) error {
-
-	if err := s.validate.Struct(userpermission); err != nil {
-		return httpError.ParseValidationErrors(err)
+func (s *permissionService) DeleteUserPermission(ctx context.Context, userId int64, permissions ...string) error {
+	if !isValidPermissions(permissions...) {
+		return httpError.NewBadRequestError("invalid permission format")
+	}
+	if userId < 1 {
+		return httpError.NewBadRequestError("user id less than 1")
 	}
 
-	err := s.repo.DeleteUserPermission(ctx, userpermission)
+	err := s.repo.DeleteUserPermission(ctx, userId, permissions...)
+
 	if err != nil {
 		return httpError.ParseErrors(err)
 	}
 
 	return nil
+}
+
+func isValidPermissions(permissions ...string) bool {
+	pattern := `^[a-zA-Z]+:[a-zA-Z]+$`
+	regex := regexp.MustCompile(pattern)
+
+	for _, permission := range permissions {
+		if !regex.MatchString(permission) {
+			return false
+		}
+
+	}
+
+	return true
 }

@@ -16,6 +16,6 @@ type Service interface {
 
 type UserPermissionsService interface {
 	GetUserPermissions(ctx context.Context, userId int64) ([]*model.Permission, error)
-	SetUserPermission(ctx context.Context, userpermission *model.UserPermission) error
-	DeleteUserPermission(ctx context.Context, userpermission *model.UserPermission) error
+	SetUserPermissions(ctx context.Context, userId int64, permissions ...string) error
+	DeleteUserPermission(ctx context.Context, userId int64, permissions ...string) error
 }
