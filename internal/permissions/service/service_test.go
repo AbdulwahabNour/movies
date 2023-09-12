@@ -3,182 +3,379 @@ package service
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"testing"
 	"time"
 
 	model "github.com/AbdulwahabNour/movies/internal/model/permission"
 	"github.com/AbdulwahabNour/movies/pkg/httpError"
+	"github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestAddPermission(t *testing.T) {
+
 	service, mockRepo := setupTest()
-	ctx, cancle := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancle()
-	err := service.AddPermission(ctx, &model.Permission{})
-	errOut := httpError.NewHttpError(http.StatusBadRequest, httpError.ErrInvalidSyntax.Error(), map[string]string{"Code": "The field Code Required"})
-	assert.EqualError(t, err, errOut.Error(), "Expected error does not match actual error")
-	mockRepo.On("AddPermission", ctx, &model.Permission{ID: 10, Code: "test"}).
-		Return(nil)
-	err = service.AddPermission(ctx, &model.Permission{ID: 10, Code: "test"})
-	assert.NoError(t, err)
+	validator := validator.New()
 
-	mockRepo.On("AddPermission", ctx, &model.Permission{ID: 11, Code: "test"}).
-		Return(fmt.Errorf("not found"))
-	err = service.AddPermission(ctx, &model.Permission{ID: 11, Code: "test"})
-	assert.Error(t, err)
+	testCases := []struct {
+		description    string
+		permission     *model.Permission
+		mocking        bool
+		returnArgument error
+		expectedErr    error
+	}{
+		{
+			description:    "Invalid permission",
+			permission:     &model.Permission{},
+			mocking:        false,
+			returnArgument: nil,
+			expectedErr:    httpError.ParseValidationErrors(validator.Struct(&model.Permission{})),
+		},
+		{
+			description:    "AddPermission Repo error",
+			permission:     &model.Permission{Code: "test"},
+			mocking:        true,
+			returnArgument: fmt.Errorf("something went wrong"),
+			expectedErr:    httpError.ParseErrors(fmt.Errorf("something went wrong")),
+		},
+		{
+			description:    "Success AddPermission Repo ",
+			permission:     &model.Permission{Code: "add:movie"},
+			mocking:        true,
+			returnArgument: nil,
+			expectedErr:    nil,
+		},
+	}
 
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			ctx, cancle := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancle()
+
+			if tc.mocking {
+				mockRepo.On("AddPermission", ctx, tc.permission).Return(tc.returnArgument)
+			}
+			err := service.AddPermission(ctx, tc.permission)
+
+			assert.Equal(t, tc.expectedErr, err)
+		})
+	}
+	mockRepo.AssertExpectations(t)
 }
 
 func TestGetPermission(t *testing.T) {
 	service, mockRepo := setupTest()
-	ctx, cancle := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancle()
-	perm := model.Permission{ID: 11, Code: "test"}
+	testCases := []struct {
+		description     string
+		permissionId    int64
+		mocking         bool
+		returnArguments []interface{}
+		expectedErr     error
+	}{
+		{
+			description:  "GetPermission Repo error",
+			permissionId: -1,
+			mocking:      true,
+			returnArguments: []interface{}{
+				&model.Permission{},
+				fmt.Errorf("something went wrong"),
+			},
+			expectedErr: httpError.ParseErrors(fmt.Errorf("something went wrong")),
+		},
+		{
+			description:  "Success GetPermission Repo ",
+			permissionId: 10,
+			mocking:      true,
+			returnArguments: []interface{}{
+				&model.Permission{},
+				nil,
+			},
+			expectedErr: nil,
+		},
+	}
 
-	mockRepo.On("GetPermission", ctx, int64(11)).
-		Return(&perm, nil)
-	permOut, err := service.GetPermission(ctx, 11)
-	assert.NoError(t, err)
-	assert.Equal(t, &perm, permOut)
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			ctx, cancle := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancle()
 
-	mockRepo.On("GetPermission", ctx, int64(1)).
-		Return(&model.Permission{}, fmt.Errorf("not found"))
+			if tc.mocking {
+				mockRepo.On("GetPermission", ctx, tc.permissionId).Return(tc.returnArguments...)
+			}
+			_, err := service.GetPermission(ctx, tc.permissionId)
 
-	permOutNil, err := service.GetPermission(ctx, 1)
-	assert.Error(t, err)
-	assert.Nil(t, permOutNil)
+			assert.Equal(t, tc.expectedErr, err)
+		})
+	}
+	mockRepo.AssertExpectations(t)
 
 }
 
 func TestUpdatePermission(t *testing.T) {
 
 	service, mockRepo := setupTest()
+	validator := validator.New()
+	testCases := []struct {
+		description    string
+		permission     *model.Permission
+		mocking        bool
+		returnArgument error
+		expectedErr    error
+	}{
+		{
+			description:    "Invalid Permission",
+			permission:     &model.Permission{},
+			mocking:        false,
+			returnArgument: nil,
+			expectedErr:    httpError.ParseValidationErrors(validator.Struct(&model.Permission{})),
+		},
+		{
+			description:    "UpdatePermission Repo error",
+			permission:     &model.Permission{ID: -10, Code: "delete:movie"},
+			mocking:        true,
+			returnArgument: fmt.Errorf("something went wrong"),
+			expectedErr:    httpError.ParseErrors(fmt.Errorf("something went wrong")),
+		},
+		{
+			description:    "Success UpdatePermission",
+			permission:     &model.Permission{ID: 11, Code: "delete:movie"},
+			mocking:        true,
+			returnArgument: nil,
+			expectedErr:    nil,
+		},
+	}
 
-	ctx, cancle := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancle()
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			ctx, cancle := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancle()
 
-	err := service.UpdatePermission(ctx, &model.Permission{})
-	errOut := httpError.NewHttpError(http.StatusBadRequest, httpError.ErrInvalidSyntax.Error(), map[string]string{"Code": "The field Code Required"})
-	assert.EqualError(t, err, errOut.Error(), "Expected error does not match actual error")
-	mockRepo.On("UpdatePermission", ctx, &model.Permission{ID: 1, Code: "test"}).
-		Return(nil)
+			if tc.mocking {
+				mockRepo.On("UpdatePermission", ctx, tc.permission).Return(tc.returnArgument)
+			}
+			err := service.UpdatePermission(ctx, tc.permission)
 
-	err = service.UpdatePermission(ctx, &model.Permission{ID: 1, Code: "test"})
-	assert.NoError(t, err)
-
-	mockRepo.On("UpdatePermission", ctx, &model.Permission{ID: 2, Code: "test"}).
-		Return(fmt.Errorf("not found"))
-
-	err = service.UpdatePermission(ctx, &model.Permission{ID: 2, Code: "test"})
-	assert.Error(t, err)
-
+			assert.Equal(t, tc.expectedErr, err)
+		})
+	}
+	mockRepo.AssertExpectations(t)
 }
 
 func TestDeletePermission(t *testing.T) {
 	service, mockRepo := setupTest()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	testCases := []struct {
+		description    string
+		permissionId   int64
+		mocking        bool
+		returnArgument error
+		expectedErr    error
+	}{
+		{
+			description:    "DeletePermission Repo error",
+			permissionId:   -1,
+			mocking:        true,
+			returnArgument: fmt.Errorf("something went wrong"),
+			expectedErr:    httpError.ParseErrors(fmt.Errorf("something went wrong")),
+		},
+		{
+			description:    "Success DeletePermission",
+			permissionId:   10,
+			mocking:        true,
+			returnArgument: nil,
+			expectedErr:    nil,
+		},
+	}
 
-	mockRepo.On("DeletePermission", ctx, int64(1)).
-		Return(nil)
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			ctx, cancle := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancle()
 
-	err := service.DeletePermission(ctx, 1)
-	assert.NoError(t, err)
+			if tc.mocking {
+				mockRepo.On("DeletePermission", ctx, tc.permissionId).Return(tc.returnArgument)
+			}
+			err := service.DeletePermission(ctx, tc.permissionId)
 
-	mockRepo.On("DeletePermission", ctx, int64(2)).
-		Return(fmt.Errorf("not found"))
+			assert.Equal(t, tc.expectedErr, err)
+		})
+	}
+	mockRepo.AssertExpectations(t)
 
-	err = service.DeletePermission(ctx, 2)
-	assert.Error(t, err)
 }
 
 func TestGetUserPermissions(t *testing.T) {
 	service, mockRepo := setupTest()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	userPermissions := []*model.Permission{
-		{ID: 1, Code: "permission1"},
-		{ID: 2, Code: "permission2"},
+	testCases := []struct {
+		description     string
+		userId          int64
+		mocking         bool
+		returnArguments []interface{}
+		expectedErr     error
+	}{
+		{
+			description: "UserPermissions Repo error",
+			userId:      -1,
+			mocking:     true,
+			returnArguments: []interface{}{
+				[]*model.Permission{},
+				fmt.Errorf("something went wrong"),
+			},
+			expectedErr: httpError.ParseErrors(fmt.Errorf("something went wrong")),
+		},
+		{
+			description: "Success GetUserPermissions",
+			userId:      10,
+			mocking:     true,
+			returnArguments: []interface{}{
+				[]*model.Permission{},
+				nil,
+			},
+			expectedErr: nil,
+		},
 	}
 
-	mockRepo.On("UserPermissions", ctx, int64(11)).
-		Return(userPermissions, nil)
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			ctx, cancle := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancle()
 
-	perms, err := service.GetUserPermissions(ctx, 11)
-	assert.NoError(t, err)
-	assert.Equal(t, userPermissions, perms)
-	mockRepo.On("UserPermissions", ctx, int64(2)).
-		Return([]*model.Permission{}, fmt.Errorf("not found"))
+			if tc.mocking {
+				mockRepo.On("UserPermissions", ctx, tc.userId).Return(tc.returnArguments...)
+			}
+			_, err := service.GetUserPermissions(ctx, tc.userId)
 
-	permsNil, err := service.GetUserPermissions(ctx, 2)
-	assert.Error(t, err)
-	assert.Nil(t, permsNil)
+			assert.Equal(t, tc.expectedErr, err)
+		})
+	}
+	mockRepo.AssertExpectations(t)
 
 }
 
-func TestSetUserPermission(t *testing.T) {
+func TestSetUserPermissions(t *testing.T) {
 	service, mockRepo := setupTest()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	userPermissions := []model.UserPermission{
-		{UserId: 0, PermissionId: 0},
-		{UserId: 3, PermissionId: 3},
-		{UserId: 5, PermissionId: 5},
+	testCases := []struct {
+		description    string
+		userId         int64
+		mocking        bool
+		codes          []string
+		returnArgument error
+		expectedErr    error
+	}{
+		{
+			description:    "Invalid permission",
+			userId:         3,
+			mocking:        false,
+			codes:          []string{"movie121:121"},
+			returnArgument: nil,
+			expectedErr:    httpError.NewBadRequestError("invalid permission format"),
+		},
+		{
+			description:    "Invalid userId",
+			userId:         -100,
+			mocking:        false,
+			codes:          []string{"add:movie"},
+			returnArgument: nil,
+			expectedErr:    httpError.NewBadRequestError("user id less than 1"),
+		},
+		{
+			description:    "AddUserPermissions Repo error",
+			userId:         10,
+			mocking:        true,
+			codes:          []string{"add:movie", "delete:movie"},
+			returnArgument: fmt.Errorf("something went wrong"),
+			expectedErr:    httpError.ParseErrors(fmt.Errorf("something went wrong")),
+		},
+		{
+			userId:         12,
+			mocking:        true,
+			codes:          []string{"add:movie", "delete:movie"},
+			returnArgument: nil,
+			expectedErr:    nil,
+		},
 	}
-	errOut := httpError.NewHttpError(http.StatusBadRequest,
-		httpError.ErrInvalidSyntax.Error(),
-		map[string]string{"PermissionId": "The field PermissionId Required",
-			"UserId": "The field UserId Required"})
+	for _, tc := range testCases {
 
-	err := service.SetUserPermission(ctx, &userPermissions[0])
-	assert.EqualError(t, errOut, err.Error())
+		t.Run(tc.description, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 
-	mockRepo.On("AddUserPermission", ctx, &userPermissions[1]).
-		Return(nil)
+			if tc.mocking {
+				mockRepo.On("AddUserPermissions", mock.Anything, tc.userId, tc.codes).Return(tc.returnArgument)
+			}
 
-	err = service.SetUserPermission(ctx, &userPermissions[1])
-	assert.NoError(t, err)
+			err := service.SetUserPermissions(ctx, tc.userId, tc.codes...)
 
-	mockRepo.On("AddUserPermission", ctx, &userPermissions[2]).
-		Return(fmt.Errorf("error adding user permission"))
+			assert.Equal(t, tc.expectedErr, err)
+		})
 
-	err = service.SetUserPermission(ctx, &userPermissions[2])
-	assert.Error(t, err)
+	}
+	mockRepo.AssertExpectations(t)
 }
 
 func TestDeleteUserPermission(t *testing.T) {
 	service, mockRepo := setupTest()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	userPermissions := []model.UserPermission{
-		{UserId: 0, PermissionId: 0},
-		{UserId: 3, PermissionId: 3},
-		{UserId: 5, PermissionId: 5},
+	testCases := []struct {
+		description    string
+		userId         int64
+		mocking        bool
+		codes          []string
+		returnArgument error
+		expectedErr    error
+	}{
+		{
+			description:    "Invalid permissions",
+			userId:         1,
+			mocking:        false,
+			codes:          []string{"add20:111"},
+			returnArgument: nil,
+			expectedErr:    httpError.NewBadRequestError("invalid permission format"),
+		},
+		{
+			description:    "Invalid userId",
+			userId:         -11,
+			mocking:        false,
+			codes:          []string{"add:movie"},
+			returnArgument: nil,
+			expectedErr:    httpError.NewBadRequestError("user id less than 1"),
+		},
+		{
+			description:    "DeleteUserPermission Repo error",
+			userId:         1,
+			mocking:        true,
+			codes:          []string{"add:movie", "delete:movie"},
+			returnArgument: fmt.Errorf("something went wrong"),
+			expectedErr:    httpError.ParseErrors(fmt.Errorf("something went wrong")),
+		},
+		{
+			description:    "Success DeleteUserPermission Repo ",
+			userId:         2,
+			mocking:        true,
+			codes:          []string{"delete:movie", "update:movie"},
+			returnArgument: nil,
+			expectedErr:    nil,
+		},
 	}
-	errOut := httpError.NewHttpError(http.StatusBadRequest,
-		httpError.ErrInvalidSyntax.Error(),
-		map[string]string{"PermissionId": "The field PermissionId Required",
-			"UserId": "The field UserId Required"})
+	for _, tc := range testCases {
 
-	err := service.DeleteUserPermission(ctx, &userPermissions[0])
-	assert.EqualError(t, errOut, err.Error())
+		t.Run(tc.description, func(t *testing.T) {
 
-	mockRepo.On("DeleteUserPermission", ctx, &userPermissions[1]).
-		Return(nil)
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 
-	err = service.DeleteUserPermission(ctx, &userPermissions[1])
-	assert.NoError(t, err)
+			if tc.mocking {
+				mockRepo.On("DeleteUserPermission", mock.Anything, tc.userId, tc.codes).Return(tc.returnArgument)
+			}
 
-	mockRepo.On("DeleteUserPermission", ctx, &userPermissions[2]).
-		Return(fmt.Errorf("error deleting user permission"))
+			err := service.DeleteUserPermission(ctx, tc.userId, tc.codes...)
 
-	err = service.DeleteUserPermission(ctx, &userPermissions[2])
-	assert.Error(t, err)
+			assert.Equal(t, tc.expectedErr, err)
+		})
+
+	}
+	mockRepo.AssertExpectations(t)
 }
