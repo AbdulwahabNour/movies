@@ -73,6 +73,9 @@ func (s *Server) MapHandler(g *gin.Engine, middleware *middlewares.MiddleWares) 
 	userHandler := usersHttp.NewMovieHandlers(s.config, userService, s.Logger)
 	tokenHandler := tokenHttp.NewTokenHandlers(s.config, tokenServ, userService, s.Logger)
 	permissionHandler := permissionHttp.NewPermissionsHandlers(s.config, permissionServ, s.Logger)
+
+	middleware.SetPermissionServ(permissionServ)
+
 	v1 := g.Group("/api/v1")
 	v1.Use(middleware.Authenticate())
 	usersHttp.MapUsersRoutes(v1, userHandler, middleware)
