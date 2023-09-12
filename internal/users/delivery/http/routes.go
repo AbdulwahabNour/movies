@@ -11,8 +11,8 @@ func MapUsersRoutes(r *gin.RouterGroup, app users.Handler, mw *middlewares.Middl
 	r.POST("auth/users/login", app.SigInHandler)
 	r.POST("auth/users/register", app.SignUpHandler)
 
-	r.GET("/users/:email", app.GetUserByEmailHandler)
-	r.PUT("/users/:id", app.UpdateuUserHandler)
-	r.DELETE("/users/:id", app.DeleteUserHandler)
+	r.GET("/users/:email", mw.RequirePermission("read:user"), app.GetUserByEmailHandler)
+	r.PUT("/users/:id", mw.RequirePermission("update:user"), app.UpdateuUserHandler)
+	r.DELETE("/users/:id", mw.RequirePermission("delete:user"), app.DeleteUserHandler)
 
 }
