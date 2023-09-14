@@ -15,6 +15,7 @@ type Config struct {
 	Logger   LoggerConfig
 	Cookie   Cookie
 	Limiter  Limiter
+	CORS     CORS
 }
 
 type ServerConfig struct {
@@ -82,6 +83,9 @@ type Limiter struct {
 	Rps     float32
 	Burst   int
 	Enabled bool
+}
+type CORS struct {
+	TrustedOrigins []string
 }
 
 func LoadConfig(fileName string) (*viper.Viper, error) {
